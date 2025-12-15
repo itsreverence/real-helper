@@ -519,13 +519,26 @@
             ({linkedUser.displayName})
           {/if}
         </div>
-        <button
-          class="secondary"
-          style="font-size: 11px;"
-          on:click={unlinkProfile}
-        >
-          Unlink Account
-        </button>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button style="font-size: 11px;" on:click={tryLinkProfile}>
+            🔄 Update
+          </button>
+          <button
+            class="secondary"
+            style="font-size: 11px;"
+            on:click={unlinkProfile}
+          >
+            Unlink
+          </button>
+        </div>
+        {#if linkingStatus}
+          <div
+            class="sub"
+            style="margin-top: 8px; color: rgba(245,158,11,0.9);"
+          >
+            {linkingStatus}
+          </div>
+        {/if}
       {:else}
         <div
           class="sub"
