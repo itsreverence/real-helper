@@ -511,13 +511,29 @@
       </div>
       {#if linkedUser}
         <div
-          class="sub"
-          style="margin-bottom:12px; padding: 8px 10px; background: rgba(34,197,94,0.08); border-radius: 6px; border-left: 2px solid rgba(34,197,94,0.4);"
+          style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;"
         >
-          ✓ Linked as <strong>@{linkedUser.username}</strong>
-          {#if linkedUser.displayName && linkedUser.displayName !== linkedUser.username}
-            ({linkedUser.displayName})
+          {#if linkedUser.avatarUrl}
+            <img
+              src={linkedUser.avatarUrl}
+              alt=""
+              style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--rsdh-accent);"
+            />
+          {:else}
+            <div
+              style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;"
+            >
+              👤
+            </div>
           {/if}
+          <div>
+            <div style="font-weight: 600; color: rgba(255,255,255,0.9);">
+              @{linkedUser.username}
+            </div>
+            {#if linkedUser.displayName && linkedUser.displayName !== linkedUser.username}
+              <div class="sub">{linkedUser.displayName}</div>
+            {/if}
+          </div>
         </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
           <button style="font-size: 11px;" on:click={tryLinkProfile}>
@@ -562,14 +578,7 @@
       <div class="h">
         <span style="opacity: 0.6; margin-right: 6px;">🔑</span>OpenRouter API
       </div>
-      {#if USE_PROXY}
-        <div
-          class="sub"
-          style="margin-bottom:12px; padding: 8px 10px; background: rgba(34,197,94,0.08); border-radius: 6px; border-left: 2px solid rgba(34,197,94,0.4);"
-        >
-          ✓ Using hosted proxy — no API key needed.
-        </div>
-      {:else}
+      {#if !USE_PROXY}
         <div
           class="sub"
           style="margin-bottom:12px; padding: 8px 10px; background: rgba(255,200,0,0.08); border-radius: 6px; border-left: 2px solid rgba(255,200,0,0.4);"

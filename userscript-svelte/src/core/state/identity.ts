@@ -8,6 +8,7 @@ const IDENTITY_KEY = "rsdh_user_identity";
 export interface UserIdentity {
     username: string;       // e.g., "wagnerpmc" (without @)
     displayName: string;    // e.g., "yevgeny prigozhin"
+    avatarUrl?: string;     // Profile picture URL
     linkedAt: string;       // ISO timestamp
 }
 
@@ -136,11 +137,11 @@ export function scrapeProfileFromPage(): UserIdentity | null {
             const divs = Array.from(grandParent.querySelectorAll("div"));
             for (const div of divs) {
                 const text = div.textContent?.trim() || "";
-                // Display name: non-empty, not starting with @, reasonable length, appears before username
-                if (text && !text.startsWith("@") && text.length > 1 && text.length < 50 &&
+                // Display name: non-empty, not starting with @, doesn't contain @, reasonable length
+                if (text && !text.startsWith("@") && !text.includes("@") && text.length > 1 && text.length < 50 &&
                     div !== usernameEl && !text.includes("Karma") && !text.includes("Rax")) {
-                    // Check if this element only contains text (no nested with different text)
-                    if (div.childElementCount === 0 || div.textContent === text) {
+                    // Check if this element only contains text (leaf node with no child elements)
+                    if (div.childElementCount === 0) {
                         displayNameEl = div as HTMLElement;
                         break;
                     }
@@ -152,6 +153,21 @@ export function scrapeProfileFromPage(): UserIdentity | null {
     const username = usernameEl.textContent?.trim().replace(/^@/, "") || "";
     const displayName = displayNameEl?.textContent?.trim() || username;
 
+    // Find avatar URL from the profile section
+    let avatarUrl: string | undefined;
+    const profileSection = usernameEl.closest('[style*="padding-top"]');
+    if (profileSection) {
+        const imgs = Array.from(profileSection.querySelectorAll('img'));
+        for (const img of imgs) {
+            const src = img.getAttribute('src') || '';
+            // User avatars are hosted at media.realapp.com/assets/user/
+            if (src.includes('media.realapp.com/assets/user/')) {
+                avatarUrl = src;
+                break;
+            }
+        }
+    }
+
     if (!username) {
         return null;
     }
@@ -159,6 +175,7 @@ export function scrapeProfileFromPage(): UserIdentity | null {
     return {
         username,
         displayName,
+        avatarUrl,
         linkedAt: new Date().toISOString(),
     };
 }
