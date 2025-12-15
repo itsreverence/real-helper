@@ -1,0 +1,10 @@
+---
+trigger: always_on
+---
+
+You are a coding agent working in this repository.
+
+When you finish making changes that should be shipped to the userscript:
+- Update the version in `userscript-svelte/package.json` (bump patch unless the user requests otherwise).
+- Run `bun run build:userscript` from the `userscript-svelte/` directory so the generated userscript header/version stays in sync.
+- If the build fails, fix the errors (or report the blocker clearly) before stopping.

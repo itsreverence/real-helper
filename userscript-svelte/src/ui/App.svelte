@@ -40,6 +40,7 @@
     clearUserIdentity,
     scrapeProfileFromPage,
     isOnProfilePage,
+    navigateToProfile,
     type UserIdentity,
   } from "../core";
 
@@ -78,12 +79,22 @@
   let linkedUser: UserIdentity | null = null;
   let linkingStatus = "";
 
-  function tryLinkProfile() {
-    if (!isOnProfilePage()) {
-      linkingStatus = "Navigate to realsports.io to link your profile";
-      toastInfo("Navigate to the RealSports homepage first");
+  async function tryLinkProfile() {
+    linkingStatus = "Navigating to profile...";
+
+    // First, try to navigate to the profile page
+    const navigated = await navigateToProfile();
+    if (!navigated) {
+      linkingStatus =
+        "Could not find profile button. Are you on realsports.io?";
+      toastError("Profile button not found");
       return;
     }
+
+    // Wait a bit more for the profile panel to fully render
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    // Now try to scrape
     const identity = scrapeProfileFromPage();
     if (identity) {
       setUserIdentity(identity);

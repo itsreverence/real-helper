@@ -55,6 +55,45 @@ export function isOnProfilePage(): boolean {
 }
 
 /**
+ * Find the profile avatar button in the navbar.
+ * It's the element with an img that has a user avatar URL.
+ */
+function findProfileNavButton(): HTMLElement | null {
+    // Look for the navbar item containing a user avatar image
+    const imgs = Array.from(document.querySelectorAll('img'));
+    for (const img of imgs) {
+        const src = img.getAttribute('src') || '';
+        // User avatars are hosted at media.realapp.com/assets/user/
+        if (src.includes('media.realapp.com/assets/user/')) {
+            // Find the clickable parent (has tabindex="0")
+            const clickable = img.closest('[tabindex="0"]') as HTMLElement | null;
+            if (clickable) {
+                return clickable;
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * Navigate to the profile page by clicking the profile avatar in navbar.
+ * Returns true if navigation was triggered, false if button not found.
+ */
+export async function navigateToProfile(): Promise<boolean> {
+    const profileBtn = findProfileNavButton();
+    if (!profileBtn) {
+        return false;
+    }
+
+    profileBtn.click();
+
+    // Wait a moment for the profile panel to render
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    return true;
+}
+
+/**
  * Attempt to scrape user identity from the current page.
  * Returns null if not on profile page or profile not found.
  */
