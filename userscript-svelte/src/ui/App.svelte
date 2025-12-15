@@ -527,12 +527,12 @@
             </div>
           {/if}
           <div>
-            <div style="font-weight: 600; color: rgba(255,255,255,0.9);">
-              @{linkedUser.username}
-            </div>
             {#if linkedUser.displayName && linkedUser.displayName !== linkedUser.username}
-              <div class="sub">{linkedUser.displayName}</div>
+              <div style="font-weight: 600; color: rgba(255,255,255,0.9);">
+                {linkedUser.displayName}
+              </div>
             {/if}
+            <div class="sub">@{linkedUser.username}</div>
           </div>
         </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
