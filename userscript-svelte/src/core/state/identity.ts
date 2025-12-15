@@ -153,17 +153,24 @@ export function scrapeProfileFromPage(): UserIdentity | null {
     const username = usernameEl.textContent?.trim().replace(/^@/, "") || "";
     const displayName = displayNameEl?.textContent?.trim() || username;
 
-    // Find avatar URL from the profile section
+    // Find avatar URL - look for user avatar image in the page
+    // The avatar is typically near the username, or we can find it by looking for
+    // images with the user avatar URL pattern
     let avatarUrl: string | undefined;
-    const profileSection = usernameEl.closest('[style*="padding-top"]');
-    if (profileSection) {
-        const imgs = Array.from(profileSection.querySelectorAll('img'));
-        for (const img of imgs) {
-            const src = img.getAttribute('src') || '';
-            // User avatars are hosted at media.realapp.com/assets/user/
-            if (src.includes('media.realapp.com/assets/user/')) {
-                avatarUrl = src;
-                break;
+
+    // First try to find it near the username element (within a few parents)
+    let searchEl: Element | null = usernameEl;
+    for (let i = 0; i < 10 && searchEl && !avatarUrl; i++) {
+        searchEl = searchEl.parentElement;
+        if (searchEl) {
+            const imgs = Array.from(searchEl.querySelectorAll('img'));
+            for (const img of imgs) {
+                const src = img.getAttribute('src') || '';
+                // User avatars are hosted at media.realapp.com/assets/user/
+                if (src.includes('media.realapp.com/assets/user/')) {
+                    avatarUrl = src;
+                    break;
+                }
             }
         }
     }
