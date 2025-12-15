@@ -168,7 +168,8 @@ export function scrapeProfileFromPage(): UserIdentity | null {
                 const src = img.getAttribute('src') || '';
                 // User avatars are hosted at media.realapp.com/assets/user/
                 if (src.includes('media.realapp.com/assets/user/')) {
-                    avatarUrl = src;
+                    // Upgrade to larger resolution (replace /small/ with /large/)
+                    avatarUrl = src.replace('/small/', '/large/');
                     break;
                 }
             }
