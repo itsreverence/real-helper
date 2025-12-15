@@ -1,0 +1,6 @@
+# Local development secrets (git-ignored)
+# Copy this to .dev.vars and fill in values
+
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
+RSDH_SHARED_SECRET=test-secret-for-local-dev
+ADMIN_SECRET=test-secret-for-local-dev

@@ -1,0 +1,20 @@
+name = "rsdh-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# Secrets (set via `wrangler secret put <NAME>`):
+# - OPENROUTER_API_KEY: Your OpenRouter API key
+# - RSDH_SHARED_SECRET: Shared secret for userscript auth
+# - ADMIN_SECRET: Password for admin dashboard
+
+[vars]
+# Non-secret config
+OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
+RATE_LIMIT_PER_HOUR = "50"
+
+# KV Namespace for usage tracking
+# Create with: wrangler kv namespace create RSDH_KV
+# Then paste the id below
+[[kv_namespaces]]
+binding = "RSDH_KV"
+id = "b71f570905d042d2b70a300d1f918669"

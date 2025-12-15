@@ -1,0 +1,20 @@
+{
+  "name": "realsports-draft-helper-userscript-ui",
+  "private": true,
+  "version": "0.9.56",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:userscript": "bun run build && bun tools/build-userscript.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "svelte": "^5.17.3"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  }
+}
