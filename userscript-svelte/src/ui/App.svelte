@@ -832,11 +832,114 @@
                 }
               })()}
               {#if p}
-                <div style="font-size: 12px; color: rgba(255,255,255,0.6);">
-                  • Mode: {p.mode || "unknown"}<br />
-                  • Sport: {p.sport || "unknown"} ({p.sport_detection_method ||
-                    "unknown"})<br />
-                  • Games: {p.games?.length || 0}
+                <div
+                  style="font-size: 12px; color: rgba(255,255,255,0.75); line-height: 1.6;"
+                >
+                  <!-- Basic Info -->
+                  <div style="margin-bottom: 10px;">
+                    <strong>Sport:</strong>
+                    {p.sport || "Unknown"} ({p.sport_detection_method ||
+                      "unknown"}) &nbsp;|&nbsp; <strong>Mode:</strong>
+                    {p.mode || "unknown"}
+                  </div>
+
+                  <!-- Slots -->
+                  <div style="margin-bottom: 10px;">
+                    <strong>Slots ({p.slots?.length || 0}):</strong>
+                    {#if p.slots?.length}
+                      <div style="margin-left: 12px; margin-top: 4px;">
+                        {#each p.slots as slot, i}
+                          <div style="padding: 2px 0; font-size: 11px;">
+                            {i + 1}.
+                            <span style="color: var(--rsdh-accent-light);"
+                              >{slot.mult}x</span
+                            >
+                            {#if slot.player}
+                              — <span style="color: #22c55e;"
+                                >{slot.player}</span
+                              >
+                            {:else}
+                              — <span style="color: rgba(255,255,255,0.4);"
+                                >Empty</span
+                              >
+                            {/if}
+                          </div>
+                        {/each}
+                      </div>
+                    {:else}
+                      <span class="sub"> None detected</span>
+                    {/if}
+                  </div>
+
+                  <!-- Player Pool Sample -->
+                  <div style="margin-bottom: 10px;">
+                    <strong
+                      >Player Pool ({p.player_pool?.length ||
+                        p.player_pool_count ||
+                        0}):</strong
+                    >
+                    {#if p.player_pool?.length}
+                      <div
+                        style="margin-left: 12px; margin-top: 4px; max-height: 120px; overflow-y: auto;"
+                      >
+                        {#each p.player_pool.slice(0, 15) as player}
+                          <div
+                            style="padding: 2px 0; font-size: 11px; display: flex; gap: 8px;"
+                          >
+                            <span style="min-width: 140px;">{player.name}</span>
+                            <span
+                              style="color: var(--rsdh-accent-light); min-width: 50px;"
+                              >+{player.boost}x</span
+                            >
+                            {#if player.status && player.status !== "Active"}
+                              <span
+                                style="color: {player.status === 'Out'
+                                  ? '#ef4444'
+                                  : '#f59e0b'}; font-size: 10px;"
+                              >
+                                {player.status}
+                              </span>
+                            {/if}
+                          </div>
+                        {/each}
+                        {#if p.player_pool.length > 15}
+                          <div class="sub" style="margin-top: 4px;">
+                            ...and {p.player_pool.length - 15} more
+                          </div>
+                        {/if}
+                      </div>
+                    {:else}
+                      <span class="sub"> None detected</span>
+                    {/if}
+                  </div>
+
+                  <!-- Games -->
+                  {#if p.games?.length}
+                    <div>
+                      <strong>Games ({p.games.length}):</strong>
+                      <div style="margin-left: 12px; margin-top: 4px;">
+                        {#each p.games.slice(0, 6) as g}
+                          <div style="padding: 2px 0; font-size: 11px;">
+                            {g.team1} vs {g.team2}
+                            {#if g.time}
+                              <span style="color: rgba(255,255,255,0.5);"
+                                >@ {g.time}</span
+                              >
+                            {:else if g.status === "finished"}
+                              <span style="color: rgba(255,255,255,0.5);"
+                                >(Final{g.score ? `: ${g.score}` : ""})</span
+                              >
+                            {/if}
+                          </div>
+                        {/each}
+                        {#if p.games.length > 6}
+                          <div class="sub">
+                            ...and {p.games.length - 6} more
+                          </div>
+                        {/if}
+                      </div>
+                    </div>
+                  {/if}
                 </div>
               {/if}
             {:else}
@@ -900,27 +1003,91 @@
           </summary>
           <div class="timeline-content">
             {#if lastToolTrace && lastToolTrace.includes("tool_call")}
-              {@const lines = lastToolTrace
-                .split("\n")
-                .filter(
-                  (l) =>
-                    l.includes("tool_call") ||
-                    l.includes("Result:") ||
-                    l.includes("query") ||
-                    l.includes("player"),
-                )}
-              <div
-                style="font-size: 11px; color: rgba(255,255,255,0.7); font-family: monospace;"
-              >
-                {#each lines.slice(0, 10) as line}
+              {@const toolCalls = (() => {
+                // Parse tool trace - look for tool_call entries
+                const calls = [];
+                try {
+                  // Try to parse as JSON array first
+                  const parsed = JSON.parse(lastToolTrace);
+                  if (Array.isArray(parsed)) {
+                    for (const item of parsed) {
+                      if (item.kind === "tool_call") {
+                        calls.push({
+                          name: item.name || "Unknown",
+                          args: item.args || item.arguments || {},
+                          result: item.result || null,
+                        });
+                      }
+                    }
+                  }
+                } catch {
+                  // Fallback: parse line-by-line if not valid JSON
+                  const lines = lastToolTrace.split("\n");
+                  for (const line of lines) {
+                    if (
+                      line.includes('"kind": "tool_call"') ||
+                      line.includes('"name":')
+                    ) {
+                      try {
+                        const obj = JSON.parse(line);
+                        if (obj.name) {
+                          calls.push({
+                            name: obj.name,
+                            args: obj.args || obj.arguments || {},
+                            result: obj.result,
+                          });
+                        }
+                      } catch {
+                        /* skip */
+                      }
+                    }
+                  }
+                }
+                return calls;
+              })()}
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                {#each toolCalls as tc, i}
                   <div
-                    style="padding: 2px 0; border-left: 2px solid rgba(245,158,11,0.4); padding-left: 8px; margin: 4px 0;"
+                    style="background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px; border-left: 3px solid var(--rsdh-accent);"
                   >
-                    {line.trim().slice(0, 80)}{line.length > 80 ? "..." : ""}
+                    <div
+                      style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"
+                    >
+                      <span
+                        style="font-weight: 600; font-size: 12px; color: var(--rsdh-accent-light);"
+                      >
+                        {tc.name === "search_draft_players" ? "🔍" : "👤"}
+                        {tc.name}
+                      </span>
+                    </div>
+                    <div style="font-size: 11px; color: rgba(255,255,255,0.7);">
+                      {#if tc.name === "search_draft_players"}
+                        Query: <strong>"{tc.args?.query || "N/A"}"</strong>
+                        {#if tc.result}
+                          <br />Found:
+                          <span style="color: #22c55e;"
+                            >{tc.result?.players_found ??
+                              tc.result?.length ??
+                              "?"} players</span
+                          >
+                        {/if}
+                      {:else if tc.name === "get_player_profile_stats"}
+                        Player: <strong>{tc.args?.player_name || "N/A"}</strong>
+                        {#if tc.result?.header}
+                          <br />Team: {tc.result.header.team || "N/A"} | Pos: {tc
+                            .result.header.position || "N/A"}
+                        {/if}
+                      {:else}
+                        Args: {JSON.stringify(tc.args).slice(0, 100)}
+                      {/if}
+                    </div>
                   </div>
                 {/each}
-                {#if lines.length > 10}
-                  <div class="sub">...and {lines.length - 10} more</div>
+                {#if toolCalls.length === 0}
+                  <div class="sub">
+                    Tool calls detected but couldn't parse details. Check Raw
+                    Data.
+                  </div>
                 {/if}
               </div>
             {:else}
@@ -962,9 +1129,77 @@
                 }
               })()}
               {#if resp}
-                <div style="font-size: 12px; color: rgba(255,255,255,0.6);">
-                  • Lineup: {resp.lineup?.length || 0} players<br />
-                  • Bets: {resp.bets?.length || 0} recommendations
+                <div
+                  style="font-size: 12px; color: rgba(255,255,255,0.75); line-height: 1.6;"
+                >
+                  <!-- Lineup -->
+                  <div style="margin-bottom: 12px;">
+                    <strong>Lineup ({resp.lineup?.length || 0} players):</strong
+                    >
+                    {#if resp.lineup?.length}
+                      <div style="margin-left: 12px; margin-top: 4px;">
+                        {#each resp.lineup as pick, i}
+                          <div
+                            style="padding: 3px 0; font-size: 11px; display: flex; gap: 8px; align-items: baseline;"
+                          >
+                            <span
+                              style="color: var(--rsdh-accent-light); min-width: 20px;"
+                              >S{pick.slot || i + 1}</span
+                            >
+                            <span style="min-width: 140px; font-weight: 500;"
+                              >{pick.player || "N/A"}</span
+                            >
+                            <span
+                              style="color: rgba(255,255,255,0.5); font-size: 10px;"
+                            >
+                              {pick.slot_mult || "?"}x slot + {pick.boost ||
+                                "?"}x boost =
+                              <span style="color: #22c55e;"
+                                >{pick.effective || "?"}x</span
+                              >
+                            </span>
+                          </div>
+                        {/each}
+                      </div>
+                    {:else}
+                      <span class="sub"> None</span>
+                    {/if}
+                  </div>
+
+                  <!-- Bets -->
+                  <div>
+                    <strong>Bet Recommendations:</strong>
+                    {#if resp.bets?.length}
+                      <div style="margin-left: 12px; margin-top: 4px;">
+                        {#each resp.bets as bet}
+                          <div
+                            style="padding: 4px 0; font-size: 11px; display: flex; gap: 8px; align-items: baseline;"
+                          >
+                            <span style="min-width: 70px; font-weight: 500;"
+                              >{bet.tier || "N/A"}</span
+                            >
+                            <span
+                              style="font-weight: 600; color: {bet.recommend
+                                ? '#22c55e'
+                                : '#ef4444'}; min-width: 30px;"
+                            >
+                              {bet.recommend ? "YES" : "NO"}
+                            </span>
+                            <span
+                              style="color: rgba(255,255,255,0.5); font-size: 10px; flex: 1;"
+                            >
+                              {bet.reason?.slice(0, 60) || ""}{bet.reason
+                                ?.length > 60
+                                ? "..."
+                                : ""}
+                            </span>
+                          </div>
+                        {/each}
+                      </div>
+                    {:else}
+                      <span class="sub"> None</span>
+                    {/if}
+                  </div>
                 </div>
               {/if}
             {:else}
