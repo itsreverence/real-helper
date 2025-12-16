@@ -30,6 +30,7 @@ import { gmGet } from "../state/storage";
 import { getUserIdentity } from "../state/identity";
 import type { OpenRouterConfig, PayloadOk } from "../types";
 import { discoverProfileUrlViaClick, navigateScrapeAndReturnToDraft } from "../scrapers/playerProfile";
+import { findModalRoot } from "../scrapers/capture";
 import { emitDebugEvent } from "../ui/debugBus";
 
 export function getOpenRouterConfig(): OpenRouterConfig {
@@ -244,14 +245,22 @@ async function executeToolCall(toolName: string, args: any, ctx: { payload?: Pay
 
     emitDebugEvent("step", `Tool call: search_draft_players(${query})`, { scope: "tool" });
 
-    // Find the search input in the draft modal
-    const modal = document.querySelector('[class*="r-1kqtdi0"]') || document.querySelector('[role="dialog"]');
+    // Find the draft modal using the same reliable method as capture
+    const modal = findModalRoot();
     if (!modal) {
-      return { error: "no_draft_modal", message: "Draft modal not found" };
+      emitDebugEvent("warn", "Draft modal not found for search", { scope: "tool" });
+      return { error: "no_draft_modal", message: "Draft modal not found. Make sure the draft modal is open." };
     }
 
-    const searchInput = modal.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+    emitDebugEvent("info", "Found draft modal", { scope: "tool" });
+
+    // Find the search input - it's an input with placeholder containing "Search"
+    const searchInput = modal.querySelector('input[placeholder*="Search"]') as HTMLInputElement
+      || modal.querySelector('input[placeholder*="search"]') as HTMLInputElement
+      || document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+
     if (!searchInput) {
+      emitDebugEvent("warn", "Search input not found in modal", { scope: "tool" });
       return { error: "no_search_input", message: "Search input not found in modal" };
     }
 
@@ -271,16 +280,21 @@ async function executeToolCall(toolName: string, args: any, ctx: { payload?: Pay
     searchInput.dispatchEvent(new Event('input', { bubbles: true }));
     searchInput.dispatchEvent(new Event('change', { bubbles: true }));
 
-    // Wait for results to filter
-    await new Promise(r => setTimeout(r, 500));
+    // Wait for debounce and results to filter (increased for reliability)
+    await new Promise(r => setTimeout(r, 800));
 
     emitDebugEvent("step", "Scraping filtered player pool...", { scope: "tool" });
 
-    // Scrape the player pool from the modal
-    const playerRows = modal.querySelectorAll('[tabindex="0"][class*="r-1loqt21"]');
+    // Scrape the player pool - look for rows with boost values (indicating player rows)
+    const allRows = modal.querySelectorAll('[tabindex="0"]');
     const players: { name: string; boost: string | null; status: string | null }[] = [];
 
-    playerRows.forEach(row => {
+    allRows.forEach(row => {
+      const rowText = row.textContent || "";
+      // Skip rows that don't look like player rows (should have a boost value like +0.1x)
+      if (!rowText.match(/[+-]?\d+\.?\d*x/i)) return;
+      if (rowText.length < 5) return;
+
       const textDivs = row.querySelectorAll('div[dir="auto"]');
       let name = "";
       let boost: string | null = null;
@@ -289,18 +303,17 @@ async function executeToolCall(toolName: string, args: any, ctx: { payload?: Pay
       textDivs.forEach(div => {
         const text = (div.textContent || "").trim();
         if (text.includes("·")) {
-          // Player name with possible status
           const parts = text.split("·").map(s => s.trim());
           name = parts[0];
           if (parts[1]) status = parts[1];
-        } else if (text.match(/^\+?\d+\.?\d*x$/i)) {
+        } else if (text.match(/^[+-]?\d+\.?\d*x$/i)) {
           boost = text;
-        } else if (!name && text.length > 2 && !text.includes("x")) {
+        } else if (!name && text.length > 2 && !text.match(/\d+\.?\d*x/i)) {
           name = text;
         }
       });
 
-      if (name) {
+      if (name && name.length > 2) {
         players.push({ name, boost, status });
       }
     });
