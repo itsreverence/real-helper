@@ -35,6 +35,7 @@
     ENABLE_PROFILE_TOOL_KEY,
     ENABLE_WEB_SEARCH_KEY,
     ENABLE_SEARCH_TOOL_KEY,
+    LINEUP_STRATEGY_KEY,
     USE_PROXY,
   } from "../core";
   import { gmGet, gmSet } from "../core";
@@ -81,6 +82,7 @@
   let enableProfileTool = true; // Enable AI to look up player profiles
   let enableWebSearch = true; // Enable AI to search the web
   let enableSearchTool = true; // Enable AI to search draft players
+  let lineupStrategy = "balanced"; // safe | balanced | risky
 
   // User identity for profile linking
   let linkedUser: UserIdentity | null = null;
@@ -170,6 +172,9 @@
     enableProfileTool = gmGet(ENABLE_PROFILE_TOOL_KEY, "1" as any) !== "0";
     enableWebSearch = gmGet(ENABLE_WEB_SEARCH_KEY, "1" as any) !== "0";
     enableSearchTool = gmGet(ENABLE_SEARCH_TOOL_KEY, "1" as any) !== "0";
+    lineupStrategy = String(
+      gmGet(LINEUP_STRATEGY_KEY, "balanced" as any) || "balanced",
+    );
 
     // Load linked user identity
     linkedUser = getUserIdentity();
@@ -656,6 +661,31 @@
           ></span
         >
       </label>
+
+      <!-- Lineup Strategy Dropdown -->
+      <div style="margin-top: 16px;">
+        <label class="sub" for="lineup-strategy">Lineup Strategy</label>
+        <select
+          id="lineup-strategy"
+          style="width:100%; margin-top: 4px; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 13px;"
+          bind:value={lineupStrategy}
+          on:change={() => gmSet(LINEUP_STRATEGY_KEY, lineupStrategy)}
+        >
+          <option value="safe">🛡️ Safe - Consistent, high floor players</option>
+          <option value="balanced">⚖️ Balanced - Mix of floor and upside</option
+          >
+          <option value="risky">🎲 Risky - Boom-or-bust, high ceiling</option>
+        </select>
+        <div class="sub" style="margin-top: 4px;">
+          {#if lineupStrategy === "safe"}
+            Prioritizes consistent performers for reliable results
+          {:else if lineupStrategy === "risky"}
+            Targets high upside players for ceiling plays
+          {:else}
+            Default strategy balancing consistency and upside
+          {/if}
+        </div>
+      </div>
     </div>
 
     <!-- Advanced Settings (Collapsible in Card) -->

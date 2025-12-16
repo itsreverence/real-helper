@@ -51,5 +51,8 @@ export const ENABLE_PROFILE_TOOL_KEY = "rsdh_enable_profile_tool";  // Enable AI
 export const ENABLE_WEB_SEARCH_KEY = "rsdh_enable_web_search";  // Enable AI to search the web
 export const ENABLE_SEARCH_TOOL_KEY = "rsdh_enable_search_tool";  // Enable AI to search draft players
 
+// User preferences
+export const LINEUP_STRATEGY_KEY = "rsdh_lineup_strategy";  // safe | balanced | risky
+
 
 

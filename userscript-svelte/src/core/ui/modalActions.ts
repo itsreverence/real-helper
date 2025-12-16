@@ -2,7 +2,7 @@ import { buildPayload, findModalRoot } from "../scrapers/capture";
 import { getDebugMode } from "../state/storage";
 import { buildChatPromptFromPayload, buildStructuredPromptFromPayload } from "../ai/prompt";
 import { askOpenRouterStructured } from "../ai/openrouter";
-import { LAST_PAYLOAD_KEY, ENABLE_WEB_SEARCH_KEY, ENABLE_PROFILE_TOOL_KEY, ENABLE_SEARCH_TOOL_KEY } from "../constants";
+import { LAST_PAYLOAD_KEY, ENABLE_WEB_SEARCH_KEY, ENABLE_PROFILE_TOOL_KEY, ENABLE_SEARCH_TOOL_KEY, LINEUP_STRATEGY_KEY } from "../constants";
 import { toastSuccess, toastError, toastInfo } from "./toast";
 import { gmGet } from "../state/storage";
 
@@ -131,10 +131,11 @@ async function runAction(kind: ActionKind) {
   const webEnabled = gmGet(ENABLE_WEB_SEARCH_KEY, "1" as any) !== "0";
   const profileToolEnabled = gmGet(ENABLE_PROFILE_TOOL_KEY, "1" as any) !== "0";
   const searchToolEnabled = gmGet(ENABLE_SEARCH_TOOL_KEY, "1" as any) !== "0";
+  const strategy = String(gmGet(LINEUP_STRATEGY_KEY, "balanced" as any) || "balanced") as "safe" | "balanced" | "risky";
   const statusMsg = webEnabled ? "Asking AI + Web..." : "Asking AI...";
   dispatchStatus(statusMsg);
   toastInfo(statusMsg);
-  const prompt = buildStructuredPromptFromPayload(payload as any, { webHint: webEnabled, toolHint: profileToolEnabled, searchHint: searchToolEnabled });
+  const prompt = buildStructuredPromptFromPayload(payload as any, { webHint: webEnabled, toolHint: profileToolEnabled, searchHint: searchToolEnabled, strategy });
   const res = await askOpenRouterStructured({ prompt, web: webEnabled, payload: payload as any });
   dispatchOutput(res.jsonText);
   dispatchStatus("AI response received.");

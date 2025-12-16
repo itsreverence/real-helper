@@ -120,7 +120,7 @@ export function buildChatPromptFromPayload(payload: PayloadOk): string {
 }
 
 // For Ask buttons (structured outputs): do NOT discourage JSON; keep it schema-friendly.
-export function buildStructuredPromptFromPayload(payload: PayloadOk, opts?: { webHint?: boolean; toolHint?: boolean; searchHint?: boolean }): string {
+export function buildStructuredPromptFromPayload(payload: PayloadOk, opts?: { webHint?: boolean; toolHint?: boolean; searchHint?: boolean; strategy?: "safe" | "balanced" | "risky" }): string {
   const { context } = baseContext(payload);
   const webHint = opts?.webHint
     ? "If web search is available, use it ONLY to verify time-sensitive info like injury status, starters, scratches, minutes restrictions, and recent news."
@@ -149,11 +149,41 @@ export function buildStructuredPromptFromPayload(payload: PayloadOk, opts?: { we
       "",
     ].join("\n")
     : "";
+
+  // Strategy-specific guidance
+  let strategyHint = "";
+  const strategy = opts?.strategy || "balanced";
+  if (strategy === "safe") {
+    strategyHint = [
+      "",
+      "### Lineup Strategy: SAFE",
+      "The user has requested a SAFE, consistent lineup. Prioritize:",
+      "- Players with high floor and consistent production",
+      "- Established stars with predictable output",
+      "- Lower variance, reliable performers",
+      "- Avoid boom-or-bust picks",
+      "",
+    ].join("\n");
+  } else if (strategy === "risky") {
+    strategyHint = [
+      "",
+      "### Lineup Strategy: RISKY (High Upside)",
+      "The user wants a RISKY, high-ceiling lineup. Prioritize:",
+      "- Players with explosive potential who can outperform their boost",
+      "- Boom-or-bust picks with high upside",
+      "- Hot streaks, favorable matchups, breakout candidates",
+      "- Accept lower floor for higher ceiling",
+      "",
+    ].join("\n");
+  }
+  // Balanced = no special hint, default behavior
+
   return [
     context,
     webHint ? `\n${webHint}\n` : "",
     toolHint,
     searchHint,
+    strategyHint,
     "Return data that matches the provided JSON schema exactly.",
   ].join("\n").trim();
 }
