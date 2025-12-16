@@ -245,8 +245,9 @@ export function scrapeGamesFromSidebar(): GameInfo[] {
   const games: GameInfo[] = [];
 
   // Find game cards - tabbable divs with team info
+  // Use textContent (not innerText/textOf) because innerText adds newlines that break time regex
   const candidates = qsa<HTMLElement>('div[tabindex="0"]').filter(el => {
-    const t = textOf(el);
+    const t = (el.textContent || "").trim();
     if (!t) return false;
     // Must not be the modal (those have boost values like +0.9x)
     if (/\+\d+\.?\d*x/i.test(t)) return false;
