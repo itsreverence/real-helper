@@ -1,6 +1,6 @@
 import { buildPayload, clickFirstDraftOrUpdateButton } from "../../core/scrapers/capture";
 import { buildChatPromptFromPayload, buildStructuredPromptFromPayload } from "../../core/ai/prompt";
-import { LAST_PAYLOAD_KEY, ENABLE_PROFILE_TOOL_KEY } from "../../core/constants";
+import { LAST_PAYLOAD_KEY, ENABLE_PROFILE_TOOL_KEY, ENABLE_SEARCH_TOOL_KEY } from "../../core/constants";
 import { gmGet } from "../../core/state/storage";
 import type { Payload, PayloadOk } from "../../core/types";
 
@@ -36,5 +36,6 @@ export function buildStructuredPromptFromLastCapture(payloadRaw: string): string
   const obj = JSON.parse(payloadRaw || "null") as PayloadOk;
   if (!obj || obj.ok !== true) throw new Error(String((obj as any)?.error || "No valid capture payload. Click Capture first."));
   const profileToolEnabled = gmGet(ENABLE_PROFILE_TOOL_KEY, "1" as any) !== "0";
-  return buildStructuredPromptFromPayload(obj, { toolHint: profileToolEnabled });
+  const searchToolEnabled = gmGet(ENABLE_SEARCH_TOOL_KEY, "1" as any) !== "0";
+  return buildStructuredPromptFromPayload(obj, { toolHint: profileToolEnabled, searchHint: searchToolEnabled });
 }

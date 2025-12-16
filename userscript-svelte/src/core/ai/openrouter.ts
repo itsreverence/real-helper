@@ -4,7 +4,9 @@ import {
   LAST_TOOL_TRACE_KEY,
   LAST_MESSAGES_KEY,
   FORCE_TOOL_CALL_KEY,
+  FORCE_SEARCH_TOOL_KEY,
   ENABLE_PROFILE_TOOL_KEY,
+  ENABLE_SEARCH_TOOL_KEY,
   OR_DEFAULT_HEAL,
   OR_DEFAULT_MAXTOK,
   OR_DEFAULT_MODEL,
@@ -190,6 +192,25 @@ function toolSpec_get_player_profile_stats() {
   };
 }
 
+function toolSpec_search_draft_players() {
+  return {
+    type: "function",
+    function: {
+      name: "search_draft_players",
+      description:
+        "Search the draft modal for players matching a query. The initial pool shows up to ~50 players, but many more may be available. Use this to find specific players by name, position, or team that might not appear in the initial list. Returns the matching players with their boost values.",
+      parameters: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          query: { type: "string", description: "Search query - player name, position (e.g. 'goalie', 'QB'), or team name." },
+        },
+        required: ["query"],
+      },
+    },
+  };
+}
+
 async function executeToolCall(toolName: string, args: any, ctx: { payload?: PayloadOk | null }) {
   if (toolName === "get_player_profile_stats") {
     const player_name = String(args?.player_name || "").trim();
@@ -217,6 +238,87 @@ async function executeToolCall(toolName: string, args: any, ctx: { payload?: Pay
     return { ...stats, discovery: "click", mode: "live_dom" };
   }
 
+  if (toolName === "search_draft_players") {
+    const query = String(args?.query || "").trim();
+    if (!query) return { error: "missing_query" };
+
+    emitDebugEvent("step", `Tool call: search_draft_players(${query})`, { scope: "tool" });
+
+    // Find the search input in the draft modal
+    const modal = document.querySelector('[class*="r-1kqtdi0"]') || document.querySelector('[role="dialog"]');
+    if (!modal) {
+      return { error: "no_draft_modal", message: "Draft modal not found" };
+    }
+
+    const searchInput = modal.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+    if (!searchInput) {
+      return { error: "no_search_input", message: "Search input not found in modal" };
+    }
+
+    emitDebugEvent("step", "Found search input, entering query...", { scope: "tool" });
+
+    // Clear existing value and set new query
+    searchInput.value = "";
+    searchInput.focus();
+
+    // Simulate typing
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+    if (nativeInputValueSetter) {
+      nativeInputValueSetter.call(searchInput, query);
+    } else {
+      searchInput.value = query;
+    }
+    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+    searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+    // Wait for results to filter
+    await new Promise(r => setTimeout(r, 500));
+
+    emitDebugEvent("step", "Scraping filtered player pool...", { scope: "tool" });
+
+    // Scrape the player pool from the modal
+    const playerRows = modal.querySelectorAll('[tabindex="0"][class*="r-1loqt21"]');
+    const players: { name: string; boost: string | null; status: string | null }[] = [];
+
+    playerRows.forEach(row => {
+      const textDivs = row.querySelectorAll('div[dir="auto"]');
+      let name = "";
+      let boost: string | null = null;
+      let status: string | null = null;
+
+      textDivs.forEach(div => {
+        const text = (div.textContent || "").trim();
+        if (text.includes("·")) {
+          // Player name with possible status
+          const parts = text.split("·").map(s => s.trim());
+          name = parts[0];
+          if (parts[1]) status = parts[1];
+        } else if (text.match(/^\+?\d+\.?\d*x$/i)) {
+          boost = text;
+        } else if (!name && text.length > 2 && !text.includes("x")) {
+          name = text;
+        }
+      });
+
+      if (name) {
+        players.push({ name, boost, status });
+      }
+    });
+
+    emitDebugEvent("info", `Found ${players.length} players matching '${query}'`, { scope: "tool" });
+
+    // Clear the search to restore full list
+    if (nativeInputValueSetter) {
+      nativeInputValueSetter.call(searchInput, "");
+    } else {
+      searchInput.value = "";
+    }
+    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+    searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+    return { query, players_found: players.length, players };
+  }
+
   return { error: "unknown_tool", toolName };
 }
 
@@ -237,23 +339,38 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
   }
 
   const forceTool = (String(gmGet(FORCE_TOOL_CALL_KEY, "0" as any)) === "1") || gmGet(FORCE_TOOL_CALL_KEY, "0" as any) === true;
-  const prompt = forceTool
-    ? [
+  const forceSearchTool = (String(gmGet(FORCE_SEARCH_TOOL_KEY, "0" as any)) === "1") || gmGet(FORCE_SEARCH_TOOL_KEY, "0" as any) === true;
+
+  let prompt = opts.prompt;
+  if (forceTool) {
+    prompt = [
       "DEBUG TOOL TEST: You MUST call the tool `get_player_profile_stats` exactly once before producing the final JSON schema answer.",
       "Pick ONE player from the available pool (prefer a high-boost or a close decision).",
       "IMPORTANT: Call the tool with return_to_draft=true so you can read dynamic Feed/Plays content, then come back to the draft.",
       "After you receive the tool result, continue normally and return the final JSON schema output.",
       "",
       opts.prompt,
-    ].join("\n")
-    : opts.prompt;
+    ].join("\n");
+  } else if (forceSearchTool) {
+    prompt = [
+      "DEBUG TOOL TEST: You MUST call the tool `search_draft_players` exactly once before producing the final JSON schema answer.",
+      "Search for a specific position (e.g. 'goalie', 'center', 'quarterback') to find additional players that may not be in the initial list.",
+      "After you receive the search results, continue normally and return the final JSON schema output.",
+      "",
+      opts.prompt,
+    ].join("\n");
+  }
 
   const toolTrace: ToolTraceEntry[] = [{ t: nowIso(), kind: "start", model: cfg.model, web: !!opts.web }];
   writeToolTrace(toolTrace);
 
-  // Check if profile tool is enabled (default: true)
+  // Check which tools are enabled (default: true for both)
   const profileToolEnabled = gmGet(ENABLE_PROFILE_TOOL_KEY, "1" as any) !== "0";
-  const tools = profileToolEnabled ? [toolSpec_get_player_profile_stats()] : [];
+  const searchToolEnabled = gmGet(ENABLE_SEARCH_TOOL_KEY, "1" as any) !== "0";
+  const tools = [
+    ...(profileToolEnabled ? [toolSpec_get_player_profile_stats()] : []),
+    ...(searchToolEnabled ? [toolSpec_search_draft_players()] : []),
+  ];
 
   // Check if debug bypass is enabled (runtime check from storage)
   const bypassProxy = (String(gmGet(BYPASS_PROXY_KEY, "0" as any)) === "1") || gmGet(BYPASS_PROXY_KEY, "0" as any) === true;

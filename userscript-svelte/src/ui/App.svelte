@@ -30,9 +30,11 @@
     LAST_TOOL_TRACE_KEY,
     LAST_DEBUG_EVENTS_KEY,
     FORCE_TOOL_CALL_KEY,
+    FORCE_SEARCH_TOOL_KEY,
     BYPASS_PROXY_KEY,
     ENABLE_PROFILE_TOOL_KEY,
     ENABLE_WEB_SEARCH_KEY,
+    ENABLE_SEARCH_TOOL_KEY,
     USE_PROXY,
   } from "../core";
   import { gmGet, gmSet } from "../core";
@@ -74,9 +76,11 @@
   let structured = true;
   let healing = true;
   let forceToolCall = false;
+  let forceSearchTool = false; // Debug: force AI to call search tool
   let bypassProxy = false; // Debug mode: bypass proxy and use direct API
   let enableProfileTool = true; // Enable AI to look up player profiles
   let enableWebSearch = true; // Enable AI to search the web
+  let enableSearchTool = true; // Enable AI to search draft players
 
   // User identity for profile linking
   let linkedUser: UserIdentity | null = null;
@@ -157,11 +161,15 @@
     forceToolCall =
       String(gmGet(FORCE_TOOL_CALL_KEY, "0" as any)) === "1" ||
       gmGet(FORCE_TOOL_CALL_KEY, "0" as any) === true;
+    forceSearchTool =
+      String(gmGet(FORCE_SEARCH_TOOL_KEY, "0" as any)) === "1" ||
+      gmGet(FORCE_SEARCH_TOOL_KEY, "0" as any) === true;
     bypassProxy =
       String(gmGet(BYPASS_PROXY_KEY, "0" as any)) === "1" ||
       gmGet(BYPASS_PROXY_KEY, "0" as any) === true;
     enableProfileTool = gmGet(ENABLE_PROFILE_TOOL_KEY, "1" as any) !== "0";
     enableWebSearch = gmGet(ENABLE_WEB_SEARCH_KEY, "1" as any) !== "0";
+    enableSearchTool = gmGet(ENABLE_SEARCH_TOOL_KEY, "1" as any) !== "0";
 
     // Load linked user identity
     linkedUser = getUserIdentity();
@@ -372,9 +380,11 @@
     gmSet(OR_STRUCTURED, structured ? "1" : "0");
     gmSet(OR_HEAL, healing ? "1" : "0");
     gmSet(FORCE_TOOL_CALL_KEY, forceToolCall ? "1" : "0");
+    gmSet(FORCE_SEARCH_TOOL_KEY, forceSearchTool ? "1" : "0");
     gmSet(BYPASS_PROXY_KEY, bypassProxy ? "1" : "0");
     gmSet(ENABLE_PROFILE_TOOL_KEY, enableProfileTool ? "1" : "0");
     gmSet(ENABLE_WEB_SEARCH_KEY, enableWebSearch ? "1" : "0");
+    gmSet(ENABLE_SEARCH_TOOL_KEY, enableSearchTool ? "1" : "0");
     setDebugMode(debugMode);
 
     // If debug mode turned off and we're on debug tab, switch to context
@@ -636,6 +646,16 @@
           ></span
         >
       </label>
+      <label
+        style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-top: 12px;"
+      >
+        <input type="checkbox" bind:checked={enableSearchTool} />
+        <span
+          ><strong>Draft Player Search</strong><br /><span class="sub"
+            >Allow AI to search for players not in the initial ~50 shown</span
+          ></span
+        >
+      </label>
     </div>
 
     <!-- Advanced Settings (Collapsible in Card) -->
@@ -795,9 +815,20 @@
         >
           <input type="checkbox" bind:checked={forceToolCall} />
           <span
-            ><strong>Force Tool Call (test)</strong><br /><span class="sub"
+            ><strong>Force Profile Tool (test)</strong><br /><span class="sub"
               >Makes AI call <code>get_player_profile_stats</code> once to verify
               tool tracing.</span
+            ></span
+          >
+        </label>
+        <label
+          style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-top: 10px;"
+        >
+          <input type="checkbox" bind:checked={forceSearchTool} />
+          <span
+            ><strong>Force Search Tool (test)</strong><br /><span class="sub"
+              >Makes AI call <code>search_draft_players</code> once to verify tool
+              tracing.</span
             ></span
           >
         </label>

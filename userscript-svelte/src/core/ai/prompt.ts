@@ -98,7 +98,7 @@ export function buildChatPromptFromPayload(payload: PayloadOk): string {
 }
 
 // For Ask buttons (structured outputs): do NOT discourage JSON; keep it schema-friendly.
-export function buildStructuredPromptFromPayload(payload: PayloadOk, opts?: { webHint?: boolean; toolHint?: boolean }): string {
+export function buildStructuredPromptFromPayload(payload: PayloadOk, opts?: { webHint?: boolean; toolHint?: boolean; searchHint?: boolean }): string {
   const { context } = baseContext(payload);
   const webHint = opts?.webHint
     ? "If web search is available, use it ONLY to verify time-sensitive info like injury status, starters, scratches, minutes restrictions, and recent news."
@@ -115,10 +115,24 @@ export function buildStructuredPromptFromPayload(payload: PayloadOk, opts?: { we
       "",
     ].join("\n")
     : "If you need player projections/stats beyond the boost values, DO NOT ask the user generic follow-up questions. Instead, request player profile stats using the tool for specific players you want to evaluate.";
+  const searchHint = opts?.searchHint
+    ? [
+      "",
+      "### Draft Player Search Tool",
+      "The initial player pool shows up to ~50 players, but more may be available.",
+      "You have access to `search_draft_players` - use it to find specific players by:",
+      "- Player name (e.g. 'McDavid')",
+      "- Position (e.g. 'goalie', 'QB', 'center')",
+      "- Team name (e.g. 'Oilers', 'Chiefs')",
+      "This is useful when you want to check if a specific player is available that isn't in the current list.",
+      "",
+    ].join("\n")
+    : "";
   return [
     context,
     webHint ? `\n${webHint}\n` : "",
     toolHint,
+    searchHint,
     "Return data that matches the provided JSON schema exactly.",
   ].join("\n").trim();
 }
