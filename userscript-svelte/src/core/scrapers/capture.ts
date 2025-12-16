@@ -326,6 +326,8 @@ export function scrapeGamesFromSidebar(): GameInfo[] {
         if (!time) {
           time = timeParts.filter(p => p !== ":").join(":").replace("::", ":");
         }
+        // Strip trailing numbers (comment counts that may have been captured)
+        time = time.replace(/\d+$/, "").trim();
       }
 
       // Determine status
