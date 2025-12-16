@@ -199,12 +199,12 @@ function toolSpec_search_draft_players() {
     function: {
       name: "search_draft_players",
       description:
-        "Search the draft modal for players matching a query. The initial pool shows up to ~50 players, but many more may be available. Use this to find specific players by name, position, or team that might not appear in the initial list. Returns the matching players with their boost values.",
+        "Search the draft modal for players by name. The initial pool shows up to ~50 players, but many more may be available. Use this to find specific players by name (full or partial) that might not appear in the initial list. Returns matching players with boost values. Note: only searches by player name, not position or team.",
       parameters: {
         type: "object",
         additionalProperties: false,
         properties: {
-          query: { type: "string", description: "Search query - player name, position (e.g. 'goalie', 'QB'), or team name." },
+          query: { type: "string", description: "Player name or partial name to search for (e.g. 'McDavid', 'Connor', 'Ovi')." },
         },
         required: ["query"],
       },
@@ -367,7 +367,8 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
   } else if (forceSearchTool) {
     prompt = [
       "DEBUG TOOL TEST: You MUST call the tool `search_draft_players` exactly once before producing the final JSON schema answer.",
-      "Search for a specific position (e.g. 'goalie', 'center', 'quarterback') to find additional players that may not be in the initial list.",
+      "Search for a player by name (e.g. 'McDavid', 'Crosby', 'Ovi') to find additional players that may not be in the initial list.",
+      "Note: This search only works with player names, not positions or teams.",
       "After you receive the search results, continue normally and return the final JSON schema output.",
       "",
       opts.prompt,

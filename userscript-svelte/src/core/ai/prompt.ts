@@ -120,11 +120,10 @@ export function buildStructuredPromptFromPayload(payload: PayloadOk, opts?: { we
       "",
       "### Draft Player Search Tool",
       "The initial player pool shows up to ~50 players, but more may be available.",
-      "You have access to `search_draft_players` - use it to find specific players by:",
-      "- Player name (e.g. 'McDavid')",
-      "- Position (e.g. 'goalie', 'QB', 'center')",
-      "- Team name (e.g. 'Oilers', 'Chiefs')",
-      "This is useful when you want to check if a specific player is available that isn't in the current list.",
+      "You have access to `search_draft_players` - use it to search for specific players by name if they aren't in the current pool.",
+      "- Search by player name or partial name (e.g. 'McDavid', 'Ovi', 'Connor')",
+      "- Note: only searches by player name, NOT by position or team",
+      "- Useful when a player you're looking for isn't in the visible list",
       "",
     ].join("\n")
     : "";
