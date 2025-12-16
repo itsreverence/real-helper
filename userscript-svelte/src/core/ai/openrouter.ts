@@ -227,6 +227,15 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
   const needsApiKey = !USE_PROXY || bypassCheck;
   if (needsApiKey && !cfg.apiKey) throw new Error("Missing OpenRouter API key.");
 
+  // Require linked account when using proxy (not bypassing with own key)
+  const useProxyMode = USE_PROXY && !bypassCheck;
+  if (useProxyMode) {
+    const identity = getUserIdentity();
+    if (!identity?.username) {
+      throw new Error("Please link your account in Settings before using Ask AI.");
+    }
+  }
+
   const forceTool = (String(gmGet(FORCE_TOOL_CALL_KEY, "0" as any)) === "1") || gmGet(FORCE_TOOL_CALL_KEY, "0" as any) === true;
   const prompt = forceTool
     ? [

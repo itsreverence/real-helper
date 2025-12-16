@@ -98,18 +98,27 @@ export function buildChatPromptFromPayload(payload: PayloadOk): string {
 }
 
 // For Ask buttons (structured outputs): do NOT discourage JSON; keep it schema-friendly.
-export function buildStructuredPromptFromPayload(payload: PayloadOk, opts?: { webHint?: boolean }): string {
+export function buildStructuredPromptFromPayload(payload: PayloadOk, opts?: { webHint?: boolean; toolHint?: boolean }): string {
   const { context } = baseContext(payload);
   const webHint = opts?.webHint
     ? "If web search is available, use it ONLY to verify time-sensitive info like injury status, starters, scratches, minutes restrictions, and recent news."
     : null;
+  const toolHint = opts?.toolHint
+    ? [
+      "",
+      "### Player Profile Lookup Tool",
+      "You have access to `get_player_profile_stats` - use it to fetch detailed stats for any player when:",
+      "- Boost values alone aren't enough to decide between players",
+      "- You need recent performance data (game logs, rankings, trends)",
+      "- A player's floor/ceiling matters for the decision",
+      "Call it with the player's name exactly as shown in the pool. The tool will scrape their profile and return stats.",
+      "",
+    ].join("\n")
+    : "If you need player projections/stats beyond the boost values, DO NOT ask the user generic follow-up questions. Instead, request player profile stats using the tool for specific players you want to evaluate.";
   return [
     context,
     webHint ? `\n${webHint}\n` : "",
-    "If you need player projections/stats beyond the boost values, DO NOT ask the user generic follow-up questions. Instead, request player profile stats using the tool for specific players you want to evaluate.",
+    toolHint,
     "Return data that matches the provided JSON schema exactly.",
   ].join("\n").trim();
 }
-
-
-

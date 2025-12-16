@@ -47,7 +47,6 @@
   } from "../core";
 
   let tab: Tab = "context";
-  let status = "Tip: open a Draft modal, then click Capture.";
   let outputRaw = "";
   let lastPayloadRaw = "";
   let outputHtml = "";
@@ -252,13 +251,6 @@
       tab = "context";
     };
 
-    const onStatus = (ev: Event) => {
-      const detail = (ev as CustomEvent).detail as
-        | { text?: string }
-        | undefined;
-      if (detail?.text) status = detail.text;
-    };
-
     const onDbg = () => {
       try {
         lastDebugEvents = String(
@@ -270,13 +262,11 @@
     };
 
     window.addEventListener("rsdh-output", onOut as any);
-    window.addEventListener("rsdh-status", onStatus as any);
     window.addEventListener("rsdh-debug-events", onDbg as any);
 
     return () => {
       document.removeEventListener("click", onDocClick, true);
       window.removeEventListener("rsdh-output", onOut as any);
-      window.removeEventListener("rsdh-status", onStatus as any);
       window.removeEventListener("rsdh-debug-events", onDbg as any);
     };
   });
@@ -309,38 +299,31 @@
   }
 
   async function onCapture() {
-    status = "Capturing...";
     setTab("context");
     try {
       const payload = captureNow(debugMode);
       lastPayloadRaw = JSON.stringify(payload, null, 2);
       outputRaw = lastPayloadRaw;
       renderFromRaw();
-      status = payload.ok
-        ? "Captured from modal."
-        : (payload.error ?? "Capture failed.");
     } catch (e) {
-      status = `Capture error: ${String((e as Error)?.message || e)}`;
+      // Error handled in renderFromRaw
     }
   }
 
   async function onCopyPrompt() {
-    status = "Building prompt...";
     try {
       const prompt = buildPromptFromLastCapture(
         lastPayloadRaw || loadLastPayloadRaw(),
       );
       GM_setClipboard(prompt);
-      status = "Copied prompt to clipboard.";
     } catch (e) {
-      status = `Copy prompt error: ${String((e as Error)?.message || e)}`;
+      toastError(`Copy prompt error: ${String((e as Error)?.message || e)}`);
     }
   }
 
   async function onAsk(web: boolean) {
     isLoading = true;
     loadingMessage = web ? "Searching web & asking AI..." : "Thinking...";
-    status = web ? "Asking AI + Web..." : "Asking AI...";
     setTab("context");
     askMenuOpen = false;
     try {
@@ -348,9 +331,8 @@
       const res = web ? await askAiWeb(payloadRaw) : await askAi(payloadRaw);
       outputRaw = res;
       renderFromRaw();
-      status = "AI response received.";
     } catch (e) {
-      status = `Ask error: ${String((e as Error)?.message || e)}`;
+      toastError(`Ask error: ${String((e as Error)?.message || e)}`);
     } finally {
       isLoading = false;
       loadingMessage = "";
@@ -360,18 +342,15 @@
   function onClear() {
     outputRaw = "";
     outputHtml = `<div class="card"><div class="h">Output</div><div class="sub">Cleared.</div></div>`;
-    status = "Cleared.";
     toastInfo("Output cleared");
   }
 
   function copyText(s: string) {
     try {
       GM_setClipboard(s);
-      status = "Copied to clipboard.";
       toastSuccess("Copied to clipboard!");
     } catch (e) {
       const msg = `Copy failed: ${String((e as Error)?.message || e)}`;
-      status = msg;
       toastError(msg);
     }
   }
