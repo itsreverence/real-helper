@@ -372,6 +372,13 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
     ...(searchToolEnabled ? [toolSpec_search_draft_players()] : []),
   ];
 
+  // Determine if we should force a specific tool (for debugging)
+  const forcedToolChoice = forceTool
+    ? { type: "function", function: { name: "get_player_profile_stats" } }
+    : forceSearchTool
+      ? { type: "function", function: { name: "search_draft_players" } }
+      : "auto";
+
   // Check if debug bypass is enabled (runtime check from storage)
   const bypassProxy = (String(gmGet(BYPASS_PROXY_KEY, "0" as any)) === "1") || gmGet(BYPASS_PROXY_KEY, "0" as any) === true;
   const useProxyNow = USE_PROXY && !bypassProxy;
@@ -428,9 +435,9 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
     };
 
     const attempts = [
-      { label: "tools+tool_choice+parallel+provider", body: { ...baseBody, tool_choice: "auto", parallel_tool_calls: false, provider: { require_parameters: true }, plugins: toolLoopPlugins } },
-      { label: "tools+tool_choice+provider", body: { ...baseBody, tool_choice: "auto", provider: { require_parameters: true }, plugins: toolLoopPlugins } },
-      { label: "tools+tool_choice", body: { ...baseBody, tool_choice: "auto", plugins: toolLoopPlugins } },
+      { label: "tools+tool_choice+parallel+provider", body: { ...baseBody, tool_choice: forcedToolChoice, parallel_tool_calls: false, provider: { require_parameters: true }, plugins: toolLoopPlugins } },
+      { label: "tools+tool_choice+provider", body: { ...baseBody, tool_choice: forcedToolChoice, provider: { require_parameters: true }, plugins: toolLoopPlugins } },
+      { label: "tools+tool_choice", body: { ...baseBody, tool_choice: forcedToolChoice, plugins: toolLoopPlugins } },
       { label: "tools-only", body: { ...baseBody, plugins: toolLoopPlugins } },
     ];
 
