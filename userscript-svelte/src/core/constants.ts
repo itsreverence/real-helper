@@ -45,5 +45,9 @@ export const LAST_MESSAGES_KEY = "rsdh_last_messages";
 export const FORCE_TOOL_CALL_KEY = "rsdh_force_tool_call";
 export const BYPASS_PROXY_KEY = "rsdh_bypass_proxy";  // Debug mode: use direct API instead of proxy
 
+// Feature flags
+export const ENABLE_PROFILE_TOOL_KEY = "rsdh_enable_profile_tool";  // Enable AI to look up player profiles
+export const ENABLE_WEB_SEARCH_KEY = "rsdh_enable_web_search";  // Enable AI to search the web
+
 
 

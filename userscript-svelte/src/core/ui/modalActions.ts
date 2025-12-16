@@ -2,10 +2,11 @@ import { buildPayload, findModalRoot } from "../scrapers/capture";
 import { getDebugMode } from "../state/storage";
 import { buildChatPromptFromPayload, buildStructuredPromptFromPayload } from "../ai/prompt";
 import { askOpenRouterStructured } from "../ai/openrouter";
-import { LAST_PAYLOAD_KEY } from "../constants";
+import { LAST_PAYLOAD_KEY, ENABLE_WEB_SEARCH_KEY } from "../constants";
 import { toastSuccess, toastError, toastInfo } from "./toast";
+import { gmGet } from "../state/storage";
 
-type ActionKind = "copy_prompt" | "ask_ai" | "ask_ai_web";
+type ActionKind = "copy_prompt" | "ask_ai";
 
 function setLastPayload(payload: any) {
   try {
@@ -86,7 +87,7 @@ function makeBar() {
   wrap.id = "rsdh-modal-actions";
   wrap.style.cssText = `
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
     margin-top: 14px;
     padding: 14px 16px 0 16px;
@@ -126,11 +127,13 @@ async function runAction(kind: ActionKind) {
     return;
   }
 
-  const statusMsg = kind === "ask_ai_web" ? "Asking AI + Web..." : "Asking AI...";
+  // Check if web search is enabled in settings
+  const webEnabled = gmGet(ENABLE_WEB_SEARCH_KEY, "1" as any) !== "0";
+  const statusMsg = webEnabled ? "Asking AI + Web..." : "Asking AI...";
   dispatchStatus(statusMsg);
   toastInfo(statusMsg);
-  const prompt = buildStructuredPromptFromPayload(payload as any, { webHint: kind === "ask_ai_web" });
-  const res = await askOpenRouterStructured({ prompt, web: kind === "ask_ai_web", payload: payload as any });
+  const prompt = buildStructuredPromptFromPayload(payload as any, { webHint: webEnabled });
+  const res = await askOpenRouterStructured({ prompt, web: webEnabled, payload: payload as any });
   dispatchOutput(res.jsonText);
   dispatchStatus("AI response received.");
   toastSuccess("AI response received!");
@@ -145,7 +148,6 @@ export function startModalActionInjection() {
     const bar = makeBar();
     const copyPrompt = btn("📋 Copy Prompt");
     const ask = btn("✨ Ask AI", true);
-    const askWeb = btn("🌐 AI + Web", true);
 
     copyPrompt.addEventListener("click", () => runAction("copy_prompt").catch(e => {
       const msg = String(e?.message || e);
@@ -157,15 +159,9 @@ export function startModalActionInjection() {
       dispatchStatus(msg);
       toastError(msg);
     }));
-    askWeb.addEventListener("click", () => runAction("ask_ai_web").catch(e => {
-      const msg = String(e?.message || e);
-      dispatchStatus(msg);
-      toastError(msg);
-    }));
 
     bar.appendChild(copyPrompt);
     bar.appendChild(ask);
-    bar.appendChild(askWeb);
 
     const anchor = findSubmitArea(modal);
     if (anchor && anchor.parentElement) {

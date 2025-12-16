@@ -4,6 +4,7 @@ import {
   LAST_TOOL_TRACE_KEY,
   LAST_MESSAGES_KEY,
   FORCE_TOOL_CALL_KEY,
+  ENABLE_PROFILE_TOOL_KEY,
   OR_DEFAULT_HEAL,
   OR_DEFAULT_MAXTOK,
   OR_DEFAULT_MODEL,
@@ -241,7 +242,9 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
   const toolTrace: ToolTraceEntry[] = [{ t: nowIso(), kind: "start", model: cfg.model, web: !!opts.web }];
   writeToolTrace(toolTrace);
 
-  const tools = [toolSpec_get_player_profile_stats()];
+  // Check if profile tool is enabled (default: true)
+  const profileToolEnabled = gmGet(ENABLE_PROFILE_TOOL_KEY, "1" as any) !== "0";
+  const tools = profileToolEnabled ? [toolSpec_get_player_profile_stats()] : [];
 
   // Check if debug bypass is enabled (runtime check from storage)
   const bypassProxy = (String(gmGet(BYPASS_PROXY_KEY, "0" as any)) === "1") || gmGet(BYPASS_PROXY_KEY, "0" as any) === true;

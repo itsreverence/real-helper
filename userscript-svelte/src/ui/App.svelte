@@ -31,6 +31,8 @@
     LAST_DEBUG_EVENTS_KEY,
     FORCE_TOOL_CALL_KEY,
     BYPASS_PROXY_KEY,
+    ENABLE_PROFILE_TOOL_KEY,
+    ENABLE_WEB_SEARCH_KEY,
     USE_PROXY,
   } from "../core";
   import { gmGet, gmSet } from "../core";
@@ -74,6 +76,8 @@
   let healing = true;
   let forceToolCall = false;
   let bypassProxy = false; // Debug mode: bypass proxy and use direct API
+  let enableProfileTool = true; // Enable AI to look up player profiles
+  let enableWebSearch = true; // Enable AI to search the web
 
   // User identity for profile linking
   let linkedUser: UserIdentity | null = null;
@@ -157,6 +161,8 @@
     bypassProxy =
       String(gmGet(BYPASS_PROXY_KEY, "0" as any)) === "1" ||
       gmGet(BYPASS_PROXY_KEY, "0" as any) === true;
+    enableProfileTool = gmGet(ENABLE_PROFILE_TOOL_KEY, "1" as any) !== "0";
+    enableWebSearch = gmGet(ENABLE_WEB_SEARCH_KEY, "1" as any) !== "0";
 
     // Load linked user identity
     linkedUser = getUserIdentity();
@@ -388,6 +394,8 @@
     gmSet(OR_HEAL, healing ? "1" : "0");
     gmSet(FORCE_TOOL_CALL_KEY, forceToolCall ? "1" : "0");
     gmSet(BYPASS_PROXY_KEY, bypassProxy ? "1" : "0");
+    gmSet(ENABLE_PROFILE_TOOL_KEY, enableProfileTool ? "1" : "0");
+    gmSet(ENABLE_WEB_SEARCH_KEY, enableWebSearch ? "1" : "0");
     setDebugMode(debugMode);
 
     // If debug mode turned off and we're on debug tab, switch to context
@@ -615,20 +623,40 @@
           />
         </div>
       </div>
-      <div style="margin-top:10px;">
-        <label class="sub" for="or-web"
-          >Web results (Ask AI + Web): {webMaxResults}</label
+      <label
+        style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-top: 12px;"
+      >
+        <input type="checkbox" bind:checked={enableWebSearch} />
+        <span
+          ><strong>Web Search</strong><br /><span class="sub"
+            >Search the web for current player news and updates</span
+          ></span
         >
-        <input
-          id="or-web"
-          style="width:100%;"
-          type="range"
-          min="1"
-          max="5"
-          step="1"
-          bind:value={webMaxResults}
-        />
-      </div>
+      </label>
+      {#if enableWebSearch}
+        <div style="margin-top:8px; margin-left: 28px;">
+          <label class="sub" for="or-web">Max results: {webMaxResults}</label>
+          <input
+            id="or-web"
+            style="width:100%;"
+            type="range"
+            min="1"
+            max="5"
+            step="1"
+            bind:value={webMaxResults}
+          />
+        </div>
+      {/if}
+      <label
+        style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-top: 12px;"
+      >
+        <input type="checkbox" bind:checked={enableProfileTool} />
+        <span
+          ><strong>Player Profile Lookup</strong><br /><span class="sub"
+            >Allow AI to look up detailed player stats from their profile</span
+          ></span
+        >
+      </label>
     </div>
 
     <!-- Advanced Settings (Collapsible) -->
