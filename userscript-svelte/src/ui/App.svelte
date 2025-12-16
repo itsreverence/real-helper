@@ -203,6 +203,10 @@
         if (obj?.ok === true) {
           outputRaw = detail.raw;
           lastPayloadRaw = detail.raw;
+          // Clear old AI-related data since this is a fresh capture
+          lastAiJson = "";
+          lastToolTrace = "";
+          lastSources = "";
           // Generate prompts for debug view
           try {
             lastChatPrompt = buildPromptFromLastCapture(detail.raw);
@@ -852,11 +856,11 @@
                           <div style="padding: 2px 0; font-size: 11px;">
                             {i + 1}.
                             <span style="color: var(--rsdh-accent-light);"
-                              >{slot.mult}x</span
+                              >{slot.multiplier}x</span
                             >
-                            {#if slot.player}
+                            {#if slot.selection}
                               — <span style="color: #22c55e;"
-                                >{slot.player}</span
+                                >{slot.selection}</span
                               >
                             {:else}
                               — <span style="color: rgba(255,255,255,0.4);"
@@ -889,7 +893,7 @@
                             <span style="min-width: 140px;">{player.name}</span>
                             <span
                               style="color: var(--rsdh-accent-light); min-width: 50px;"
-                              >+{player.boost}x</span
+                              >+{player.boost_x}x</span
                             >
                             {#if player.status && player.status !== "Active"}
                               <span
@@ -962,20 +966,60 @@
             </span>
           </summary>
           <div class="timeline-content">
-            {#if lastStructuredPrompt}
-              <textarea
-                readonly
-                value={lastStructuredPrompt}
-                style="min-height: 120px; font-size: 11px;"
-              ></textarea>
-              <button
-                class="secondary"
-                style="margin-top:4px; font-size:10px; padding:4px 8px;"
-                on:click={() => copyText(lastStructuredPrompt)}>📋 Copy</button
+            <div
+              style="font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 8px;"
+            >
+              Two prompts are generated: <strong>Chat</strong> (for copy/paste
+              to chatbots) and <strong>Structured</strong> (for OpenRouter with tool
+              hints).
+            </div>
+
+            <!-- Chat Prompt -->
+            <details class="details" style="margin-bottom: 8px;">
+              <summary style="font-size: 11px;"
+                >📝 Chat Prompt (for copy/paste)</summary
               >
-            {:else}
-              <div class="sub">Use Ask AI to generate prompt</div>
-            {/if}
+              {#if lastChatPrompt}
+                <textarea
+                  readonly
+                  value={lastChatPrompt}
+                  style="min-height: 100px; font-size: 10px; margin-top: 6px;"
+                ></textarea>
+                <button
+                  class="secondary"
+                  style="margin-top:4px; font-size:10px; padding:4px 8px;"
+                  on:click={() => copyText(lastChatPrompt)}>📋 Copy Chat</button
+                >
+              {:else}
+                <div class="sub" style="margin-top: 6px;">
+                  Capture a draft modal to generate
+                </div>
+              {/if}
+            </details>
+
+            <!-- Structured Prompt -->
+            <details class="details" open>
+              <summary style="font-size: 11px;"
+                >🔧 Structured Prompt (for OpenRouter/API)</summary
+              >
+              {#if lastStructuredPrompt}
+                <textarea
+                  readonly
+                  value={lastStructuredPrompt}
+                  style="min-height: 100px; font-size: 10px; margin-top: 6px;"
+                ></textarea>
+                <button
+                  class="secondary"
+                  style="margin-top:4px; font-size:10px; padding:4px 8px;"
+                  on:click={() => copyText(lastStructuredPrompt)}
+                  >📋 Copy Structured</button
+                >
+              {:else}
+                <div class="sub" style="margin-top: 6px;">
+                  Use Ask AI to generate
+                </div>
+              {/if}
+            </details>
           </div>
         </details>
 
