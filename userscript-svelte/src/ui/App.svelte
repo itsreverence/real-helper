@@ -1188,7 +1188,7 @@
                           >
                             <span
                               style="color: var(--rsdh-accent-light); min-width: 20px;"
-                              >S{pick.slot || i + 1}</span
+                              >S{pick.slot_index ?? i + 1}</span
                             >
                             <span style="min-width: 140px; font-weight: 500;"
                               >{pick.player || "N/A"}</span
@@ -1196,10 +1196,10 @@
                             <span
                               style="color: rgba(255,255,255,0.5); font-size: 10px;"
                             >
-                              {pick.slot_mult || "?"}x slot + {pick.boost ||
+                              {pick.slot_multiplier ?? "?"}x slot + {pick.player_boost_x ??
                                 "?"}x boost =
                               <span style="color: #22c55e;"
-                                >{pick.effective || "?"}x</span
+                                >{pick.effective_multiplier ?? "?"}x</span
                               >
                             </span>
                           </div>

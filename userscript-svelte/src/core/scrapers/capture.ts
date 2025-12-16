@@ -490,15 +490,34 @@ export function parsePlayerPoolFromModalText(modalText: string): PlayerPoolItem[
 }
 
 export function parsePlayerPoolFromModalDom(modal: Element): PlayerPoolItem[] {
-  // Heuristic: player rows tend to be tabbable and contain a boost like "+0.9x"
+  // Heuristic: player rows tend to be tabbable (0 or -1 in update mode) and contain player info
   const boostTokenRe = /\+(\d+(?:\.\d+)?)x\b/i;
-  const candidates = qsa<HTMLElement>("div[tabindex='0'],[role='button'],button,a", modal)
+
+  // Include both tabindex=0 (normal) and tabindex=-1 (disabled/greyed out in update mode)
+  const candidates = qsa<HTMLElement>("div[tabindex='0'],div[tabindex='-1'],[role='button'],button,a", modal)
     .filter(el => {
       const t = textOf(el);
       if (!t) return false;
-      if (!boostTokenRe.test(t)) return false;
+
       const r = el.getBoundingClientRect();
-      return r.width > 120 && r.height >= 28;
+      const isReasonableSize = r.width > 120 && r.height >= 28;
+      if (!isReasonableSize) return false;
+
+      // If has boost, definitely a player
+      const hasBoost = boostTokenRe.test(t);
+      if (hasBoost) return true;
+
+      // Otherwise, check if it looks like a player row (has image + name-like text)
+      // This handles update mode where selected players don't show boost
+      const hasImg = el.querySelector("img") !== null;
+      if (!hasImg) return false;
+
+      // Exclude non-player elements
+      if (t.includes("Submit") || t.includes("Update") || t.includes("Draft")) return false;
+
+      // Should have name-like text (reasonable length, contains letters)
+      const hasName = /[a-zA-Z]{2,}/.test(t) && t.length < 100;
+      return hasName;
     })
     .slice(0, 400);
 
@@ -508,11 +527,19 @@ export function parsePlayerPoolFromModalDom(modal: Element): PlayerPoolItem[] {
   for (const el of candidates) {
     const t = textOf(el);
     const bm = t.match(boostTokenRe);
-    if (!bm) continue;
-    const boost_x = parseFloat(bm[1]);
-    if (!Number.isFinite(boost_x)) continue;
 
-    const beforeBoost = t.slice(0, t.toLowerCase().lastIndexOf(bm[0].toLowerCase())).trim();
+    // Extract boost - may be null for disabled/greyed players
+    let boost_x: number | null = null;
+    if (bm) {
+      boost_x = parseFloat(bm[1]);
+      if (!Number.isFinite(boost_x)) boost_x = null;
+    }
+
+    // Extract name - either before boost or entire text for disabled players
+    let beforeBoost = bm
+      ? t.slice(0, t.toLowerCase().lastIndexOf(bm[0].toLowerCase())).trim()
+      : t.trim();
+
     const parts = beforeBoost.split("·").map(s => s.trim()).filter(Boolean);
     const name = parts[0] || "";
     if (!name) continue;
