@@ -893,7 +893,7 @@
                             <span style="min-width: 140px;">{player.name}</span>
                             <span
                               style="color: var(--rsdh-accent-light); min-width: 50px;"
-                              >+{player.boost_x}x</span
+                              >+{player.boost_x ?? 0}x</span
                             >
                             {#if player.status && player.status !== "Active"}
                               <span
@@ -1197,7 +1197,7 @@
                               style="color: rgba(255,255,255,0.5); font-size: 10px;"
                             >
                               {pick.slot_multiplier ?? "?"}x slot + {pick.player_boost_x ??
-                                "?"}x boost =
+                                0}x boost =
                               <span style="color: #22c55e;"
                                 >{pick.effective_multiplier ?? "?"}x</span
                               >
