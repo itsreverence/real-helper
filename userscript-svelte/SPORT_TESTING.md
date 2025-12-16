@@ -84,3 +84,22 @@ Track real-world testing for each sport's scraping functionality.
 - NHL config verified with real samples (Dec 14, 2025)
 - Skater profile: Matt Boldy (Wild)
 - Goalie profile: Thatcher Demko, Jeremy Swayman
+
+---
+
+## Sidebar Games Scraping
+
+Track testing of game schedule scraping from sidebar (below sport nav).
+
+### Game States Needed
+- [x] **Upcoming** - Shows time like "7:00 PM" ✅ Have sample
+- [ ] **Live** - Shows score/period while in progress
+- [x] **Finished** - Shows final score ✅ Have sample (Ducks 4-1 Rangers)
+
+### Sports to Test
+- [ ] NHL
+- [ ] NFL
+- [ ] NBA
+- [ ] MLB
+
+> When you see a live game, capture the HTML and update this file!

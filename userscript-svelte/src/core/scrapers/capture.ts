@@ -7,7 +7,7 @@ import {
   SPORTS,
 } from "../constants";
 import { getDebugMode } from "../state/storage";
-import type { Payload, Slot, PlayerPoolItem, SportInfo } from "../types";
+import type { Payload, Slot, PlayerPoolItem, SportInfo, GameInfo } from "../types";
 
 type RGB = { r: number; g: number; b: number };
 
@@ -233,6 +233,128 @@ export function detectSportFromNavbar(): SportInfo {
   if (fromUrl) return { sport: String(fromUrl), method: "url_hint" };
 
   return { sport: null, method: "navbar_no_active" };
+}
+
+/**
+ * Scrape today's games from the sidebar.
+ * Upcoming games: team names, records (13-13-6), time (7:00 PM)
+ * Finished games: team names, scores (4, 1), "Final"
+ * Live games: TODO - need sample
+ */
+export function scrapeGamesFromSidebar(): GameInfo[] {
+  const games: GameInfo[] = [];
+
+  // Find game cards - tabbable divs with team info
+  const candidates = qsa<HTMLElement>('div[tabindex="0"]').filter(el => {
+    const t = textOf(el);
+    if (!t) return false;
+    // Must not be the modal (those have boost values like +0.9x)
+    if (/\+\d+\.?\d*x/i.test(t)) return false;
+    // Game cards have either time (7:00 PM) or Final
+    const hasTime = /\d{1,2}:\d{2}\s*(AM|PM)/i.test(t);
+    const hasFinal = /\bFinal\b/i.test(t);
+    // Must have at least 2 team-like words (for team names)
+    const teamLikeWords = t.match(/\b[A-Z][a-z]+\b/g) || [];
+    return (hasTime || hasFinal) && teamLikeWords.length >= 2;
+  });
+
+  for (const card of candidates) {
+    try {
+      const textDivs = Array.from(card.querySelectorAll('div[dir="auto"]'));
+      const cardText = textOf(card);
+
+      // Determine game type
+      const hasFinal = /\bFinal\b/i.test(cardText);
+      const hasTime = /\d{1,2}:\d{2}\s*(AM|PM)/i.test(cardText);
+
+      let team1 = "";
+      let team2 = "";
+      let team1_record: string | null = null;
+      let team2_record: string | null = null;
+      let score: string | null = null;
+      let time: string | null = null;
+
+      // Patterns
+      const recordPattern = /^\d{1,2}-\d{1,2}(-\d{1,2})?$/;  // 13-13-6 or 16-14
+      const scorePattern = /^\d{1,2}$/;  // Single/double digit score
+      const timePartPattern = /^(\d{1,2}|:|AM|PM|\d{2}\s*(AM|PM)|Final)$/i;
+
+      const timeParts: string[] = [];
+      const scores: string[] = [];
+      const teams: string[] = [];
+      const records: string[] = [];
+
+      for (const div of textDivs) {
+        const text = (div.textContent || "").trim();
+        if (!text) continue;
+
+        if (recordPattern.test(text)) {
+          records.push(text);
+        } else if (scorePattern.test(text) && hasFinal) {
+          // Only treat as score if it's a finished game
+          scores.push(text);
+        } else if (timePartPattern.test(text)) {
+          timeParts.push(text);
+        } else if (text.length > 2 && text.length < 25 && !text.includes("%") && /^[A-Za-z\s]+$/.test(text)) {
+          // Team name - letters only, reasonable length
+          teams.push(text);
+        }
+      }
+
+      // Assign teams (should have exactly 2)
+      if (teams.length >= 2) {
+        team1 = teams[0];
+        team2 = teams[1];
+      } else if (teams.length === 1) {
+        team1 = teams[0];
+      }
+
+      // Assign records or scores
+      if (hasFinal && scores.length >= 2) {
+        // Finished game - combine scores
+        score = `${scores[0]}-${scores[1]}`;
+      } else if (records.length >= 2) {
+        // Upcoming game - assign records
+        team1_record = records[0];
+        team2_record = records[1];
+      } else if (records.length === 1) {
+        team1_record = records[0];
+      }
+
+      // Build time string
+      if (timeParts.length > 0 && !hasFinal) {
+        time = timeParts.join("").replace(/\s+/g, " ").trim();
+        if (!time) {
+          time = timeParts.filter(p => p !== ":").join(":").replace("::", ":");
+        }
+      }
+
+      // Determine status
+      let status: "upcoming" | "live" | "finished" = "upcoming";
+      if (hasFinal) {
+        status = "finished";
+      } else if (time) {
+        status = "upcoming";
+      }
+
+      // Only add if we found both teams
+      if (team1 && team2) {
+        games.push({
+          team1,
+          team1_record,
+          team2,
+          team2_record,
+          time,
+          status,
+          score,
+        });
+      }
+    } catch {
+      // Skip malformed cards
+    }
+  }
+
+  return games;
 }
 
 export function findModalRoot(): Element | null {
@@ -636,6 +758,9 @@ export function buildPayload(opts: { includeDebug?: boolean } = {}): Payload {
   const domPool = parsePlayerPoolFromModalDom(modal);
   const player_pool = domPool.length > 0 ? domPool : parsePlayerPoolFromModalText(modalText);
 
+  // Scrape today's games from sidebar
+  const games = scrapeGamesFromSidebar();
+
   return {
     ok: true,
     mode: "modal",
@@ -649,6 +774,7 @@ export function buildPayload(opts: { includeDebug?: boolean } = {}): Payload {
     slots,
     player_pool_count: player_pool.length,
     player_pool,
+    ...(games.length > 0 ? { games } : {}),
   } as Payload;
 }
 

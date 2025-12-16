@@ -1,5 +1,5 @@
 import { MAX_POOL_IN_PROMPT } from "../constants";
-import type { PayloadOk, Slot, PlayerPoolItem } from "../types";
+import type { PayloadOk, Slot, PlayerPoolItem, GameInfo } from "../types";
 
 function baseContext(payload: PayloadOk) {
   let slots: Slot[] = Array.isArray(payload?.slots) ? (payload.slots as Slot[]) : [];
@@ -35,6 +35,22 @@ function baseContext(payload: PayloadOk) {
         ? slots.length
         : 5;
 
+  // Build games context if available
+  const games: GameInfo[] = Array.isArray(payload?.games) ? payload.games : [];
+  const gamesLines = games.length > 0
+    ? games.map(g => {
+      let suffix = "";
+      if (g.status === "finished" && g.score) {
+        suffix = ` (Final: ${g.score})`;
+      } else if (g.time) {
+        suffix = ` @ ${g.time}`;
+      } else if (g.status === "finished") {
+        suffix = " (Final)";
+      }
+      return `- ${g.team1} vs ${g.team2}${suffix}`;
+    }).join("\n")
+    : "";
+
   const context = [
     "You are helping build an optimal Draft Lineup.",
     "",
@@ -44,6 +60,12 @@ function baseContext(payload: PayloadOk) {
     `Capture Mode: ${payload?.mode || "<unknown>"}`,
     `Sport: ${payload?.sport || "<unknown>"}`,
     "",
+    ...(gamesLines ? [
+      "### Today's Games",
+      "The following games are scheduled. Players from these teams will be playing:",
+      gamesLines,
+      "",
+    ] : []),
     "### Rules / how scoring multipliers work",
     `- You must select EXACTLY ${expectedSlots} unique players.`,
     "- Each lineup slot has a slot multiplier (e.g. 2.0x, 1.8x, 1.6x...).",
