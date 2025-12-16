@@ -488,22 +488,6 @@
 
   <!-- Settings Tab -->
   <div class="view {tab === 'settings' ? '' : 'hidden'}">
-    <div
-      class="card"
-      style="background: linear-gradient(135deg, var(--rsdh-accent-subtle) 0%, transparent 100%);"
-    >
-      <label
-        style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer;"
-      >
-        <input type="checkbox" bind:checked={debugMode} />
-        <span
-          ><strong>Debug Mode</strong><br /><span class="sub"
-            >Show Debug tab with raw data and developer tools</span
-          ></span
-        >
-      </label>
-    </div>
-
     <!-- Account Linking Card -->
     <div class="card">
       <div class="h">
@@ -647,35 +631,45 @@
       </div>
     </div>
 
-    <!-- Advanced Settings Card -->
-    <div class="card" style="border-left: 3px solid rgba(255,255,255,0.1);">
-      <div class="h">
-        <span style="opacity: 0.6; margin-right: 6px;">⚙️</span>Advanced
-      </div>
-      <label
-        style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-bottom: 12px;"
-      >
-        <input type="checkbox" bind:checked={bypassProxy} />
-        <span
-          ><strong>Use my own API key</strong><br /><span class="sub"
-            >Bypass hosted proxy and call OpenRouter directly</span
-          ></span
+    <!-- Advanced Settings (Collapsible) -->
+    <details class="details" style="margin-top: 10px;">
+      <summary>⚙️ Advanced</summary>
+      <div style="margin-top: 12px;">
+        <label
+          style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-bottom: 12px;"
         >
-      </label>
-      {#if bypassProxy}
-        <label class="sub" for="or-key">Your OpenRouter API Key</label>
-        <input
-          id="or-key"
-          style="width:100%; margin-bottom:8px;"
-          type="password"
-          bind:value={apiKey}
-          placeholder="sk-or-..."
-        />
-        <div class="sub" style="color: rgba(245,158,11,0.8);">
-          ⚠️ Your key is stored locally. You will be billed directly.
-        </div>
-      {/if}
-    </div>
+          <input type="checkbox" bind:checked={bypassProxy} />
+          <span
+            ><strong>Use my own API key</strong><br /><span class="sub"
+              >Bypass hosted proxy and call OpenRouter directly</span
+            ></span
+          >
+        </label>
+        {#if bypassProxy}
+          <label class="sub" for="or-key">Your OpenRouter API Key</label>
+          <input
+            id="or-key"
+            style="width:100%; margin-bottom:8px;"
+            type="password"
+            bind:value={apiKey}
+            placeholder="sk-or-..."
+          />
+          <div class="sub" style="color: rgba(245,158,11,0.8);">
+            ⚠️ Your key is stored locally. You will be billed directly.
+          </div>
+        {/if}
+        <label
+          style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-top: 12px;"
+        >
+          <input type="checkbox" bind:checked={debugMode} />
+          <span
+            ><strong>Debug Mode</strong><br /><span class="sub"
+              >Show Debug tab with raw data and developer tools</span
+            ></span
+          >
+        </label>
+      </div>
+    </details>
 
     <div style="display:flex; gap:8px; margin-top:14px;">
       <button
