@@ -824,76 +824,84 @@
         </label>
       </div>
 
-      <!-- Raw Data (Collapsed by default) -->
-      <details class="details" style="margin-top:10px;">
-        <summary>📄 Raw Capture Data</summary>
-        <textarea
-          bind:value={outputRaw}
-          placeholder="Raw JSON / text..."
-          on:input={renderFromRaw}
-        ></textarea>
-        <button
-          class="secondary"
-          style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
-          on:click={() => copyText(outputRaw)}>📋 Copy</button
-        >
-      </details>
+      <!-- Raw Data Card -->
+      <div class="card">
+        <div class="h" style="margin-bottom: 12px;">📁 Raw Data</div>
 
-      <details class="details" style="margin-top:8px;">
-        <summary>🌐 Web Sources</summary>
-        <textarea readonly value={lastSources || "(No web sources)"}></textarea>
-        <button
-          class="secondary"
-          style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
-          on:click={() => copyText(lastSources)}>📋 Copy</button
-        >
-      </details>
+        <details class="details">
+          <summary>📄 Raw Capture Data</summary>
+          <textarea
+            bind:value={outputRaw}
+            placeholder="Raw JSON / text..."
+            on:input={renderFromRaw}
+          ></textarea>
+          <button
+            class="secondary"
+            style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
+            on:click={() => copyText(outputRaw)}>📋 Copy</button
+          >
+        </details>
 
-      <details class="details" style="margin-top:8px;">
-        <summary>🔗 Tool Call Trace</summary>
-        <textarea readonly value={lastToolTrace || "(No tool calls)"}
-        ></textarea>
-        <button
-          class="secondary"
-          style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
-          on:click={() => copyText(lastToolTrace)}>📋 Copy</button
-        >
-      </details>
+        <details class="details" style="margin-top:8px;">
+          <summary>🌐 Web Sources</summary>
+          <textarea readonly value={lastSources || "(No web sources)"}
+          ></textarea>
+          <button
+            class="secondary"
+            style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
+            on:click={() => copyText(lastSources)}>📋 Copy</button
+          >
+        </details>
 
-      <details class="details" style="margin-top:8px;">
-        <summary>🤖 AI Response JSON</summary>
-        <textarea readonly value={lastAiJson} placeholder="No AI response yet."
-        ></textarea>
-        <button
-          class="secondary"
-          style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
-          on:click={() => copyText(lastAiJson)}>📋 Copy</button
-        >
-      </details>
+        <details class="details" style="margin-top:8px;">
+          <summary>🔗 Tool Call Trace</summary>
+          <textarea readonly value={lastToolTrace || "(No tool calls)"}
+          ></textarea>
+          <button
+            class="secondary"
+            style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
+            on:click={() => copyText(lastToolTrace)}>📋 Copy</button
+          >
+        </details>
 
-      <details class="details" style="margin-top:8px;">
-        <summary>📋 Prompts (Chat + Structured)</summary>
-        <div class="sub" style="margin-bottom: 6px;">Chat Prompt:</div>
-        <textarea
-          readonly
-          value={lastChatPrompt}
-          placeholder="Capture a draft modal to see the prompt here."
-          style="min-height: 80px;"
-        ></textarea>
-        <div class="sub" style="margin: 8px 0 6px 0;">Structured Prompt:</div>
-        <textarea
-          readonly
-          value={lastStructuredPrompt}
-          placeholder="Use Ask AI to see the structured prompt here."
-          style="min-height: 80px;"
-        ></textarea>
-        <button
-          class="secondary"
-          style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
-          on:click={() => copyText(lastStructuredPrompt)}
-          >📋 Copy Structured</button
-        >
-      </details>
+        <details class="details" style="margin-top:8px;">
+          <summary>🤖 AI Response JSON</summary>
+          <textarea
+            readonly
+            value={lastAiJson}
+            placeholder="No AI response yet."
+          ></textarea>
+          <button
+            class="secondary"
+            style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
+            on:click={() => copyText(lastAiJson)}>📋 Copy</button
+          >
+        </details>
+
+        <details class="details" style="margin-top:8px;">
+          <summary>📋 Prompts (Chat + Structured)</summary>
+          <div class="sub" style="margin-bottom: 6px;">Chat Prompt:</div>
+          <textarea
+            readonly
+            value={lastChatPrompt}
+            placeholder="Capture a draft modal to see the prompt here."
+            style="min-height: 80px;"
+          ></textarea>
+          <div class="sub" style="margin: 8px 0 6px 0;">Structured Prompt:</div>
+          <textarea
+            readonly
+            value={lastStructuredPrompt}
+            placeholder="Use Ask AI to see the structured prompt here."
+            style="min-height: 80px;"
+          ></textarea>
+          <button
+            class="secondary"
+            style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
+            on:click={() => copyText(lastStructuredPrompt)}
+            >📋 Copy Structured</button
+          >
+        </details>
+      </div>
     </div>
   {/if}
 </div>
