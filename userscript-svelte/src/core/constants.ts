@@ -4,7 +4,7 @@ export const MULT_TOKEN_RE = /(\d+(?:\.\d+)?)x\b/gi;
 export const BOOST_LINE_RE = /^\+(\d+(?:\.\d+)?)x\b/i;
 
 export const MAX_POOL_IN_PROMPT = 200;
-export const SPORTS = ["NFL", "NHL", "NBA", "MLB", "CFB", "CBB", "UFC", "Golf", "FC", "WNBA"] as const;
+export const SPORTS = ["NFL", "NHL", "NBA", "MLB", "CFB", "CBB", "FC", "WNBA"] as const;  // UFC and Golf excluded - no drafts
 
 export const ACCENT_CACHE_KEY = "rsdh_accent_rgb";
 export const DEBUG_MODE_KEY = "rsdh_debug_mode";

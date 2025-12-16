@@ -743,203 +743,352 @@
   <!-- Debug Tab (only rendered when debugMode is true) -->
   {#if debugMode}
     <div class="view {tab === 'debug' ? '' : 'hidden'}">
-      <!-- Quick Status Overview -->
+      <!-- Summary Header -->
       <div class="card" style="border-left: 3px solid rgba(245, 158, 11, 0.6);">
-        <div class="h">📊 Last Request Summary</div>
         <div
-          style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;"
+          style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;"
         >
-          <!-- Capture Status -->
-          <div
-            style="padding: 10px; background: rgba(255,255,255,0.04); border-radius: 8px;"
+          <span style="font-size: 18px;">📊</span>
+          <span style="font-weight: 600; color: rgba(255,255,255,0.95);"
+            >Request Summary</span
           >
-            <div
-              style="font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 4px;"
-            >
-              📋 Capture
-            </div>
-            <div
-              style="font-size: 13px; color: {outputRaw
-                ? 'rgba(34,197,94,0.9)'
-                : 'rgba(255,255,255,0.4)'};"
-            >
-              {#if outputRaw}
-                ✓ Data captured
-              {:else}
-                — No capture yet
-              {/if}
-            </div>
-          </div>
-          <!-- Web Search Status -->
-          <div
-            style="padding: 10px; background: rgba(255,255,255,0.04); border-radius: 8px;"
-          >
-            <div
-              style="font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 4px;"
-            >
-              🌐 Web Search
-            </div>
-            <div
-              style="font-size: 13px; color: {lastSources
-                ? 'rgba(34,197,94,0.9)'
-                : 'rgba(255,255,255,0.4)'};"
-            >
-              {#if lastSources}
-                ✓ {lastSources.split("\n").filter((l) => l.trim()).length} sources
-                found
-              {:else}
-                — Not used
-              {/if}
-            </div>
-          </div>
-          <!-- Tool Calls Status -->
-          <div
-            style="padding: 10px; background: rgba(255,255,255,0.04); border-radius: 8px;"
-          >
-            <div
-              style="font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 4px;"
-            >
-              🔗 Tool Calls
-            </div>
-            <div
-              style="font-size: 13px; color: {lastToolTrace &&
-              lastToolTrace.includes('tool_call')
-                ? 'rgba(34,197,94,0.9)'
-                : 'rgba(255,255,255,0.4)'};"
-            >
-              {#if lastToolTrace && lastToolTrace.includes("tool_call")}
-                ✓ Profile lookup used
-              {:else}
-                — No tools called
-              {/if}
-            </div>
-          </div>
-          <!-- AI Response Status -->
-          <div
-            style="padding: 10px; background: rgba(255,255,255,0.04); border-radius: 8px;"
-          >
-            <div
-              style="font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 4px;"
-            >
-              🤖 AI Response
-            </div>
-            <div
-              style="font-size: 13px; color: {lastAiJson
-                ? 'rgba(34,197,94,0.9)'
-                : 'rgba(255,255,255,0.4)'};"
-            >
-              {#if lastAiJson}
-                ✓ Response received
-              {:else}
-                — No response yet
-              {/if}
-            </div>
-          </div>
         </div>
+        {#if lastPayloadRaw}
+          {@const payload = (() => {
+            try {
+              return JSON.parse(lastPayloadRaw);
+            } catch {
+              return null;
+            }
+          })()}
+          {#if payload}
+            <div
+              style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: rgba(255,255,255,0.7);"
+            >
+              <span><strong>{payload.sport || "Unknown"}</strong></span>
+              <span
+                >👥 {payload.player_pool_count ||
+                  payload.player_pool?.length ||
+                  "?"} players</span
+              >
+              <span
+                >🎯 {payload.slots?.length || payload.expected_slots || "?"} slots</span
+              >
+              {#if payload.games?.length}
+                <span>🏒 {payload.games.length} games</span>
+              {/if}
+            </div>
+            <div
+              style="font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 6px;"
+            >
+              Captured: {payload.captured_at
+                ? new Date(payload.captured_at).toLocaleTimeString()
+                : "Unknown"}
+            </div>
+          {:else}
+            <div class="sub">Unable to parse payload</div>
+          {/if}
+        {:else}
+          <div class="sub">
+            No capture yet. Open a draft modal and click Capture.
+          </div>
+        {/if}
+      </div>
+
+      <!-- Timeline Steps -->
+      <div class="card">
+        <div class="h" style="margin-bottom: 12px;">🕐 Request Timeline</div>
+
+        <!-- Step 1: Capture -->
+        <details class="timeline-step" open>
+          <summary class="timeline-summary">
+            <span class="timeline-icon {outputRaw ? 'success' : ''}">
+              {outputRaw ? "✓" : "○"}
+            </span>
+            <span class="timeline-title">1. Capture</span>
+            <span class="timeline-status">
+              {#if outputRaw}
+                {@const p = (() => {
+                  try {
+                    return JSON.parse(outputRaw);
+                  } catch {
+                    return null;
+                  }
+                })()}
+                {p?.player_pool_count || p?.player_pool?.length || "?"} players,
+                {p?.slots?.length || "?"} slots
+              {:else}
+                Pending
+              {/if}
+            </span>
+          </summary>
+          <div class="timeline-content">
+            {#if outputRaw}
+              {@const p = (() => {
+                try {
+                  return JSON.parse(outputRaw);
+                } catch {
+                  return null;
+                }
+              })()}
+              {#if p}
+                <div style="font-size: 12px; color: rgba(255,255,255,0.6);">
+                  • Mode: {p.mode || "unknown"}<br />
+                  • Sport: {p.sport || "unknown"} ({p.sport_detection_method ||
+                    "unknown"})<br />
+                  • Games: {p.games?.length || 0}
+                </div>
+              {/if}
+            {:else}
+              <div class="sub">No data captured yet</div>
+            {/if}
+          </div>
+        </details>
+
+        <!-- Step 2: Prompt -->
+        <details class="timeline-step">
+          <summary class="timeline-summary">
+            <span class="timeline-icon {lastStructuredPrompt ? 'success' : ''}">
+              {lastStructuredPrompt ? "✓" : "○"}
+            </span>
+            <span class="timeline-title">2. Prompt Built</span>
+            <span class="timeline-status">
+              {lastStructuredPrompt
+                ? `${lastStructuredPrompt.length} chars`
+                : "Pending"}
+            </span>
+          </summary>
+          <div class="timeline-content">
+            {#if lastStructuredPrompt}
+              <textarea
+                readonly
+                value={lastStructuredPrompt}
+                style="min-height: 120px; font-size: 11px;"
+              ></textarea>
+              <button
+                class="secondary"
+                style="margin-top:4px; font-size:10px; padding:4px 8px;"
+                on:click={() => copyText(lastStructuredPrompt)}>📋 Copy</button
+              >
+            {:else}
+              <div class="sub">Use Ask AI to generate prompt</div>
+            {/if}
+          </div>
+        </details>
+
+        <!-- Step 3: Tools Called -->
+        <details class="timeline-step">
+          <summary class="timeline-summary">
+            <span
+              class="timeline-icon {lastToolTrace &&
+              lastToolTrace.includes('tool_call')
+                ? 'success'
+                : ''}"
+            >
+              {lastToolTrace && lastToolTrace.includes("tool_call") ? "✓" : "○"}
+            </span>
+            <span class="timeline-title">3. Tool Calls</span>
+            <span class="timeline-status">
+              {#if lastToolTrace && lastToolTrace.includes("tool_call")}
+                {@const toolCount = (lastToolTrace.match(/tool_call/g) || [])
+                  .length}
+                {toolCount} call{toolCount !== 1 ? "s" : ""}
+              {:else}
+                None
+              {/if}
+            </span>
+          </summary>
+          <div class="timeline-content">
+            {#if lastToolTrace && lastToolTrace.includes("tool_call")}
+              {@const lines = lastToolTrace
+                .split("\n")
+                .filter(
+                  (l) =>
+                    l.includes("tool_call") ||
+                    l.includes("Result:") ||
+                    l.includes("query") ||
+                    l.includes("player"),
+                )}
+              <div
+                style="font-size: 11px; color: rgba(255,255,255,0.7); font-family: monospace;"
+              >
+                {#each lines.slice(0, 10) as line}
+                  <div
+                    style="padding: 2px 0; border-left: 2px solid rgba(245,158,11,0.4); padding-left: 8px; margin: 4px 0;"
+                  >
+                    {line.trim().slice(0, 80)}{line.length > 80 ? "..." : ""}
+                  </div>
+                {/each}
+                {#if lines.length > 10}
+                  <div class="sub">...and {lines.length - 10} more</div>
+                {/if}
+              </div>
+            {:else}
+              <div class="sub">No tools were called</div>
+            {/if}
+          </div>
+        </details>
+
+        <!-- Step 4: Response -->
+        <details class="timeline-step">
+          <summary class="timeline-summary">
+            <span class="timeline-icon {lastAiJson ? 'success' : ''}">
+              {lastAiJson ? "✓" : "○"}
+            </span>
+            <span class="timeline-title">4. AI Response</span>
+            <span class="timeline-status">
+              {#if lastAiJson}
+                {@const resp = (() => {
+                  try {
+                    return JSON.parse(lastAiJson);
+                  } catch {
+                    return null;
+                  }
+                })()}
+                {resp?.lineup?.length || "?"} players, {resp?.bets?.length ||
+                  "?"} bets
+              {:else}
+                Pending
+              {/if}
+            </span>
+          </summary>
+          <div class="timeline-content">
+            {#if lastAiJson}
+              {@const resp = (() => {
+                try {
+                  return JSON.parse(lastAiJson);
+                } catch {
+                  return null;
+                }
+              })()}
+              {#if resp}
+                <div style="font-size: 12px; color: rgba(255,255,255,0.6);">
+                  • Lineup: {resp.lineup?.length || 0} players<br />
+                  • Bets: {resp.bets?.length || 0} recommendations
+                </div>
+              {/if}
+            {:else}
+              <div class="sub">No response yet</div>
+            {/if}
+          </div>
+        </details>
+
+        <!-- Web Sources (if any) -->
+        {#if lastSources}
+          <details class="timeline-step">
+            <summary class="timeline-summary">
+              <span class="timeline-icon success">✓</span>
+              <span class="timeline-title">Web Search</span>
+              <span class="timeline-status">
+                {lastSources.split("\n").filter((l) => l.trim()).length} sources
+              </span>
+            </summary>
+            <div class="timeline-content">
+              <div style="font-size: 11px; color: rgba(255,255,255,0.6);">
+                {#each lastSources
+                  .split("\n")
+                  .filter((l) => l.trim())
+                  .slice(0, 5) as src}
+                  <div style="padding: 2px 0;">
+                    🔗 {src.slice(0, 60)}{src.length > 60 ? "..." : ""}
+                  </div>
+                {/each}
+              </div>
+            </div>
+          </details>
+        {/if}
       </div>
 
       <!-- Dev Options -->
       <div class="card" style="background: rgba(255,255,255,0.04);">
+        <div class="h" style="margin-bottom: 8px; font-size: 12px;">
+          🔧 Dev Options
+        </div>
         <label
           style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer;"
         >
           <input type="checkbox" bind:checked={forceToolCall} />
           <span
-            ><strong>Force Profile Tool (test)</strong><br /><span class="sub"
-              >Makes AI call <code>get_player_profile_stats</code> once to verify
-              tool tracing.</span
+            ><strong>Force Profile Tool</strong>
+            <span class="sub">— Makes AI call get_player_profile_stats</span
             ></span
           >
         </label>
         <label
-          style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-top: 10px;"
+          style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-top: 8px;"
         >
           <input type="checkbox" bind:checked={forceSearchTool} />
           <span
-            ><strong>Force Search Tool (test)</strong><br /><span class="sub"
-              >Makes AI call <code>search_draft_players</code> once to verify tool
-              tracing.</span
-            ></span
+            ><strong>Force Search Tool</strong>
+            <span class="sub">— Makes AI call search_draft_players</span></span
           >
         </label>
       </div>
 
-      <!-- Raw Data Card -->
+      <!-- Raw Data (Collapsed) -->
       <div class="card">
-        <div class="h" style="margin-bottom: 12px;">📁 Raw Data</div>
-
         <details class="details">
-          <summary>📄 Raw Capture Data</summary>
-          <textarea
-            bind:value={outputRaw}
-            placeholder="Raw JSON / text..."
-            on:input={renderFromRaw}
-          ></textarea>
-          <button
-            class="secondary"
-            style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
-            on:click={() => copyText(outputRaw)}>📋 Copy</button
+          <summary style="font-size: 13px; font-weight: 600;"
+            >📁 Raw Data</summary
           >
-        </details>
-
-        <details class="details" style="margin-top:8px;">
-          <summary>🌐 Web Sources</summary>
-          <textarea readonly value={lastSources || "(No web sources)"}
-          ></textarea>
-          <button
-            class="secondary"
-            style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
-            on:click={() => copyText(lastSources)}>📋 Copy</button
-          >
-        </details>
-
-        <details class="details" style="margin-top:8px;">
-          <summary>🔗 Tool Call Trace</summary>
-          <textarea readonly value={lastToolTrace || "(No tool calls)"}
-          ></textarea>
-          <button
-            class="secondary"
-            style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
-            on:click={() => copyText(lastToolTrace)}>📋 Copy</button
-          >
-        </details>
-
-        <details class="details" style="margin-top:8px;">
-          <summary>🤖 AI Response JSON</summary>
-          <textarea
-            readonly
-            value={lastAiJson}
-            placeholder="No AI response yet."
-          ></textarea>
-          <button
-            class="secondary"
-            style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
-            on:click={() => copyText(lastAiJson)}>📋 Copy</button
-          >
-        </details>
-
-        <details class="details" style="margin-top:8px;">
-          <summary>📋 Prompts (Chat + Structured)</summary>
-          <div class="sub" style="margin-bottom: 6px;">Chat Prompt:</div>
-          <textarea
-            readonly
-            value={lastChatPrompt}
-            placeholder="Capture a draft modal to see the prompt here."
-            style="min-height: 80px;"
-          ></textarea>
-          <div class="sub" style="margin: 8px 0 6px 0;">Structured Prompt:</div>
-          <textarea
-            readonly
-            value={lastStructuredPrompt}
-            placeholder="Use Ask AI to see the structured prompt here."
-            style="min-height: 80px;"
-          ></textarea>
-          <button
-            class="secondary"
-            style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
-            on:click={() => copyText(lastStructuredPrompt)}
-            >📋 Copy Structured</button
-          >
+          <div style="margin-top: 12px;">
+            <details class="details" style="margin-bottom: 8px;">
+              <summary style="font-size: 12px;">Capture JSON</summary>
+              <textarea
+                readonly
+                value={outputRaw || "(No capture data)"}
+                style="min-height: 100px;"
+              ></textarea>
+              <button
+                class="secondary"
+                style="margin-top:4px; font-size:10px; padding:4px 8px;"
+                on:click={() => copyText(outputRaw)}>📋 Copy</button
+              >
+            </details>
+            <details class="details" style="margin-bottom: 8px;">
+              <summary style="font-size: 12px;">Tool Trace</summary>
+              <textarea
+                readonly
+                value={lastToolTrace || "(No tool calls)"}
+                style="min-height: 100px;"
+              ></textarea>
+              <button
+                class="secondary"
+                style="margin-top:4px; font-size:10px; padding:4px 8px;"
+                on:click={() => copyText(lastToolTrace)}>📋 Copy</button
+              >
+            </details>
+            <details class="details" style="margin-bottom: 8px;">
+              <summary style="font-size: 12px;">AI Response JSON</summary>
+              <textarea
+                readonly
+                value={lastAiJson || "(No AI response)"}
+                style="min-height: 100px;"
+              ></textarea>
+              <button
+                class="secondary"
+                style="margin-top:4px; font-size:10px; padding:4px 8px;"
+                on:click={() => copyText(lastAiJson)}>📋 Copy</button
+              >
+            </details>
+            <details class="details">
+              <summary style="font-size: 12px;">Prompts</summary>
+              <div class="sub" style="margin: 6px 0 4px;">Chat Prompt:</div>
+              <textarea
+                readonly
+                value={lastChatPrompt || "(No chat prompt)"}
+                style="min-height: 60px;"
+              ></textarea>
+              <div class="sub" style="margin: 8px 0 4px;">
+                Structured Prompt:
+              </div>
+              <textarea
+                readonly
+                value={lastStructuredPrompt || "(No structured prompt)"}
+                style="min-height: 60px;"
+              ></textarea>
+            </details>
+          </div>
         </details>
       </div>
     </div>

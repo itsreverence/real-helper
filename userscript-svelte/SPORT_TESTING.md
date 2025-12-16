@@ -74,6 +74,13 @@ Track real-world testing for each sport's scraping functionality.
 
 ---
 
+## Not Supported
+
+### UFC & Golf
+> These sports do not have draft functionality on RealSports. No action needed.
+
+---
+
 ## How to Test
 1. Open a draft modal for the sport
 2. Click "Capture" - verify player data is correct
