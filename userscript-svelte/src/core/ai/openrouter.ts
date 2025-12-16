@@ -265,6 +265,9 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
     const identity = getUserIdentity();
     if (identity?.username) {
       baseHeaders["X-RSDH-User"] = identity.username;
+      if (identity.displayName) {
+        baseHeaders["X-RSDH-DisplayName"] = identity.displayName;
+      }
     }
   }
 

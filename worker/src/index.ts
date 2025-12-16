@@ -19,7 +19,7 @@ interface Env {
 const CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, X-RSDH-Auth, X-RSDH-User, X-Title, HTTP-Referer, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, X-RSDH-Auth, X-RSDH-User, X-RSDH-DisplayName, X-Title, HTTP-Referer, Authorization",
 };
 
 // KV key prefixes
@@ -72,6 +72,7 @@ async function handleProxy(request: Request, env: Env): Promise<Response> {
 
     // Get user identity (optional but tracked)
     const username = request.headers.get("X-RSDH-User") || "anonymous";
+    const displayName = request.headers.get("X-RSDH-DisplayName") || undefined;
 
     // Check rate limit
     const rateLimit = parseInt(env.RATE_LIMIT_PER_HOUR || "50", 10);
@@ -86,7 +87,7 @@ async function handleProxy(request: Request, env: Env): Promise<Response> {
         const model = body.model || "unknown";
 
         // Log usage (non-blocking)
-        logUsage(env, username, model).catch(() => { });
+        logUsage(env, username, displayName, model).catch(() => { });
 
         // Forward to OpenRouter with our API key
         const openRouterResponse = await fetch(env.OPENROUTER_ENDPOINT, {
@@ -141,18 +142,20 @@ async function checkRateLimit(env: Env, username: string, limit: number): Promis
 // USAGE LOGGING
 // ============================================================================
 
-async function logUsage(env: Env, username: string, model: string): Promise<void> {
+async function logUsage(env: Env, username: string, displayName: string | undefined, model: string): Promise<void> {
     const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
     const now = new Date().toISOString();
+    const TTL_30_DAYS = 60 * 60 * 24 * 30; // 30 days in seconds
 
     // Update user record
     const userKey = `${KEY_PREFIX.USER}${username}`;
     try {
-        const existing = await env.RSDH_KV.get(userKey, "json") as { firstSeen?: string; lastSeen?: string } | null;
+        const existing = await env.RSDH_KV.get(userKey, "json") as { firstSeen?: string; lastSeen?: string; displayName?: string } | null;
         await env.RSDH_KV.put(userKey, JSON.stringify({
             firstSeen: existing?.firstSeen || now,
             lastSeen: now,
-        }));
+            displayName: displayName || existing?.displayName || undefined,
+        }), { expirationTtl: TTL_30_DAYS });
     } catch { /* ignore */ }
 
     // Update daily usage
@@ -195,7 +198,7 @@ async function handleAdmin(request: Request, env: Env, url: URL): Promise<Respon
 }
 
 async function handleAdminUsers(env: Env): Promise<Response> {
-    const users: Array<{ username: string; firstSeen: string; lastSeen: string; todayRequests: number }> = [];
+    const users: Array<{ username: string; displayName?: string; firstSeen: string; lastSeen: string; todayRequests: number }> = [];
     const today = new Date().toISOString().slice(0, 10);
 
     try {
@@ -204,11 +207,12 @@ async function handleAdminUsers(env: Env): Promise<Response> {
 
         for (const key of userList.keys) {
             const username = key.name.replace(KEY_PREFIX.USER, "");
-            const userData = await env.RSDH_KV.get(key.name, "json") as { firstSeen?: string; lastSeen?: string } | null;
+            const userData = await env.RSDH_KV.get(key.name, "json") as { firstSeen?: string; lastSeen?: string; displayName?: string } | null;
             const usageData = await env.RSDH_KV.get(`${KEY_PREFIX.USAGE}${username}:${today}`, "json") as { requests?: number } | null;
 
             users.push({
                 username,
+                displayName: userData?.displayName,
                 firstSeen: userData?.firstSeen || "unknown",
                 lastSeen: userData?.lastSeen || "unknown",
                 todayRequests: usageData?.requests || 0,
@@ -315,7 +319,7 @@ function handleAdminDashboard(): Response {
             <tbody>
               \${data.users.map(u => \`
                 <tr>
-                  <td>@\${u.username}</td>
+                  <td>\${u.displayName || ''}<div style="color:#8b949e;font-size:12px;">@\${u.username}</div></td>
                   <td>\${u.todayRequests}</td>
                   <td>\${new Date(u.lastSeen).toLocaleString()}</td>
                 </tr>
