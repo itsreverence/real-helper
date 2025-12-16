@@ -253,9 +253,7 @@ export function scrapeGamesFromSidebar(): GameInfo[] {
     // Game cards have either time (7:00 PM) or Final
     const hasTime = /\d{1,2}:\d{2}\s*(AM|PM)/i.test(t);
     const hasFinal = /\bFinal\b/i.test(t);
-    // Must have at least 2 team-like words (for team names)
-    const teamLikeWords = t.match(/\b[A-Z][a-z]+\b/g) || [];
-    return (hasTime || hasFinal) && teamLikeWords.length >= 2;
+    return hasTime || hasFinal;
   });
 
   for (const card of candidates) {
