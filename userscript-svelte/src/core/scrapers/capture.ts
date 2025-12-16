@@ -366,7 +366,7 @@ export function parsePlayerPoolFromModalText(modalText: string): PlayerPoolItem[
   return pool;
 }
 
-function parsePlayerPoolFromModalDom(modal: Element): PlayerPoolItem[] {
+export function parsePlayerPoolFromModalDom(modal: Element): PlayerPoolItem[] {
   // Heuristic: player rows tend to be tabbable and contain a boost like "+0.9x"
   const boostTokenRe = /\+(\d+(?:\.\d+)?)x\b/i;
   const candidates = qsa<HTMLElement>("div[tabindex='0'],[role='button'],button,a", modal)

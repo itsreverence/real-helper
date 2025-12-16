@@ -30,7 +30,7 @@ import { gmGet } from "../state/storage";
 import { getUserIdentity } from "../state/identity";
 import type { OpenRouterConfig, PayloadOk } from "../types";
 import { discoverProfileUrlViaClick, navigateScrapeAndReturnToDraft } from "../scrapers/playerProfile";
-import { findModalRoot } from "../scrapers/capture";
+import { findModalRoot, parsePlayerPoolFromModalDom } from "../scrapers/capture";
 import { emitDebugEvent } from "../ui/debugBus";
 
 export function getOpenRouterConfig(): OpenRouterConfig {
@@ -285,40 +285,10 @@ async function executeToolCall(toolName: string, args: any, ctx: { payload?: Pay
 
     emitDebugEvent("step", "Scraping filtered player pool...", { scope: "tool" });
 
-    // Scrape the player pool - look for rows with boost values (indicating player rows)
-    const allRows = modal.querySelectorAll('[tabindex="0"]');
-    const players: { name: string; boost: string | null; status: string | null }[] = [];
+    // Use the same robust scraping as initial capture
+    const playerPool = parsePlayerPoolFromModalDom(modal);
 
-    allRows.forEach(row => {
-      const rowText = row.textContent || "";
-      // Skip rows that don't look like player rows (should have a boost value like +0.1x)
-      if (!rowText.match(/[+-]?\d+\.?\d*x/i)) return;
-      if (rowText.length < 5) return;
-
-      const textDivs = row.querySelectorAll('div[dir="auto"]');
-      let name = "";
-      let boost: string | null = null;
-      let status: string | null = null;
-
-      textDivs.forEach(div => {
-        const text = (div.textContent || "").trim();
-        if (text.includes("·")) {
-          const parts = text.split("·").map(s => s.trim());
-          name = parts[0];
-          if (parts[1]) status = parts[1];
-        } else if (text.match(/^[+-]?\d+\.?\d*x$/i)) {
-          boost = text;
-        } else if (!name && text.length > 2 && !text.match(/\d+\.?\d*x/i)) {
-          name = text;
-        }
-      });
-
-      if (name && name.length > 2) {
-        players.push({ name, boost, status });
-      }
-    });
-
-    emitDebugEvent("info", `Found ${players.length} players matching '${query}'`, { scope: "tool" });
+    emitDebugEvent("info", `Found ${playerPool.length} players matching '${query}'`, { scope: "tool" });
 
     // Clear the search to restore full list
     if (nativeInputValueSetter) {
@@ -328,6 +298,14 @@ async function executeToolCall(toolName: string, args: any, ctx: { payload?: Pay
     }
     searchInput.dispatchEvent(new Event('input', { bubbles: true }));
     searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+    // Map to the expected format with boost as string
+    const players = playerPool.map(p => ({
+      name: p.name,
+      boost: p.boost_x !== null && p.boost_x !== undefined ? `+${p.boost_x}x` : null,
+      status: p.status,
+      profile_url: p.profile_url || null,
+    }));
 
     return { query, players_found: players.length, players };
   }
