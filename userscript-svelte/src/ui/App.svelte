@@ -712,11 +712,102 @@
   <!-- Debug Tab (only rendered when debugMode is true) -->
   {#if debugMode}
     <div class="view {tab === 'debug' ? '' : 'hidden'}">
+      <!-- Quick Status Overview -->
       <div class="card" style="border-left: 3px solid rgba(245, 158, 11, 0.6);">
-        <div class="h">🐛 Developer Tools</div>
-        <div class="sub">Raw data, prompts, and debugging utilities.</div>
+        <div class="h">📊 Last Request Summary</div>
+        <div
+          style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;"
+        >
+          <!-- Capture Status -->
+          <div
+            style="padding: 10px; background: rgba(255,255,255,0.04); border-radius: 8px;"
+          >
+            <div
+              style="font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 4px;"
+            >
+              📋 Capture
+            </div>
+            <div
+              style="font-size: 13px; color: {outputRaw
+                ? 'rgba(34,197,94,0.9)'
+                : 'rgba(255,255,255,0.4)'};"
+            >
+              {#if outputRaw}
+                ✓ Data captured
+              {:else}
+                — No capture yet
+              {/if}
+            </div>
+          </div>
+          <!-- Web Search Status -->
+          <div
+            style="padding: 10px; background: rgba(255,255,255,0.04); border-radius: 8px;"
+          >
+            <div
+              style="font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 4px;"
+            >
+              🌐 Web Search
+            </div>
+            <div
+              style="font-size: 13px; color: {lastSources
+                ? 'rgba(34,197,94,0.9)'
+                : 'rgba(255,255,255,0.4)'};"
+            >
+              {#if lastSources}
+                ✓ {lastSources.split("\n").filter((l) => l.trim()).length} sources
+                found
+              {:else}
+                — Not used
+              {/if}
+            </div>
+          </div>
+          <!-- Tool Calls Status -->
+          <div
+            style="padding: 10px; background: rgba(255,255,255,0.04); border-radius: 8px;"
+          >
+            <div
+              style="font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 4px;"
+            >
+              🔗 Tool Calls
+            </div>
+            <div
+              style="font-size: 13px; color: {lastToolTrace &&
+              lastToolTrace.includes('tool_call')
+                ? 'rgba(34,197,94,0.9)'
+                : 'rgba(255,255,255,0.4)'};"
+            >
+              {#if lastToolTrace && lastToolTrace.includes("tool_call")}
+                ✓ Profile lookup used
+              {:else}
+                — No tools called
+              {/if}
+            </div>
+          </div>
+          <!-- AI Response Status -->
+          <div
+            style="padding: 10px; background: rgba(255,255,255,0.04); border-radius: 8px;"
+          >
+            <div
+              style="font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 4px;"
+            >
+              🤖 AI Response
+            </div>
+            <div
+              style="font-size: 13px; color: {lastAiJson
+                ? 'rgba(34,197,94,0.9)'
+                : 'rgba(255,255,255,0.4)'};"
+            >
+              {#if lastAiJson}
+                ✓ Response received
+              {:else}
+                — No response yet
+              {/if}
+            </div>
+          </div>
+        </div>
       </div>
 
+      <!-- Dev Options -->
       <div class="card" style="background: rgba(255,255,255,0.04);">
         <label
           style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer;"
@@ -731,8 +822,9 @@
         </label>
       </div>
 
-      <details class="details" style="margin-top:10px;" open>
-        <summary>📄 Raw Payload</summary>
+      <!-- Raw Data (Collapsed by default) -->
+      <details class="details" style="margin-top:10px;">
+        <summary>📄 Raw Capture Data</summary>
         <textarea
           bind:value={outputRaw}
           placeholder="Raw JSON / text..."
@@ -746,45 +838,8 @@
       </details>
 
       <details class="details" style="margin-top:8px;">
-        <summary>📋 Chat Prompt (for Copy Prompt button)</summary>
-        <textarea
-          readonly
-          value={lastChatPrompt}
-          placeholder="Capture a draft modal to see the prompt here."
-        ></textarea>
-        <button
-          class="secondary"
-          style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
-          on:click={() => copyText(lastChatPrompt)}>📋 Copy</button
-        >
-      </details>
-
-      <details class="details" style="margin-top:8px;">
-        <summary>🔧 Structured Prompt (sent to Ask AI)</summary>
-        <textarea
-          readonly
-          value={lastStructuredPrompt}
-          placeholder="Capture a draft modal and use Ask AI to see the prompt here."
-        ></textarea>
-        <button
-          class="secondary"
-          style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
-          on:click={() => copyText(lastStructuredPrompt)}>📋 Copy</button
-        >
-      </details>
-
-      <details class="details" style="margin-top:8px;">
-        <summary>🌐 Web Sources (Ask AI + Web)</summary>
-        <div
-          style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;"
-        >
-          URLs referenced by the AI when using web search:
-        </div>
-        <textarea
-          readonly
-          value={lastSources ||
-            "(No web sources - use Ask AI + Web to see sources)"}
-        ></textarea>
+        <summary>🌐 Web Sources</summary>
+        <textarea readonly value={lastSources || "(No web sources)"}></textarea>
         <button
           class="secondary"
           style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
@@ -793,16 +848,8 @@
       </details>
 
       <details class="details" style="margin-top:8px;">
-        <summary>🔗 Tool Calls & Scraped Data</summary>
-        <div
-          style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;"
-        >
-          Shows tool calls made during Ask AI, including scraped profile data:
-        </div>
-        <textarea
-          readonly
-          value={lastToolTrace ||
-            "(No tool calls yet - Ask AI may call tools to scrape player profiles)"}
+        <summary>🔗 Tool Call Trace</summary>
+        <textarea readonly value={lastToolTrace || "(No tool calls)"}
         ></textarea>
         <button
           class="secondary"
@@ -819,6 +866,30 @@
           class="secondary"
           style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
           on:click={() => copyText(lastAiJson)}>📋 Copy</button
+        >
+      </details>
+
+      <details class="details" style="margin-top:8px;">
+        <summary>📋 Prompts (Chat + Structured)</summary>
+        <div class="sub" style="margin-bottom: 6px;">Chat Prompt:</div>
+        <textarea
+          readonly
+          value={lastChatPrompt}
+          placeholder="Capture a draft modal to see the prompt here."
+          style="min-height: 80px;"
+        ></textarea>
+        <div class="sub" style="margin: 8px 0 6px 0;">Structured Prompt:</div>
+        <textarea
+          readonly
+          value={lastStructuredPrompt}
+          placeholder="Use Ask AI to see the structured prompt here."
+          style="min-height: 80px;"
+        ></textarea>
+        <button
+          class="secondary"
+          style="margin-top:6px; width:auto; padding:6px 12px; font-size:11px;"
+          on:click={() => copyText(lastStructuredPrompt)}
+          >📋 Copy Structured</button
         >
       </details>
     </div>
