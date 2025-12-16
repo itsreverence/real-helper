@@ -520,6 +520,15 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
 
         };
       }
+      if (toolName === "search_draft_players") {
+        summary.query = r?.query || args?.query || null;
+        summary.players_found = typeof r?.players_found === "number" ? r.players_found : 0;
+        // Include first 5 player names for quick reference
+        if (Array.isArray(r?.players) && r.players.length > 0) {
+          summary.sample_players = r.players.slice(0, 5).map((p: any) => p.name);
+        }
+        if (r?.error) summary.error = r.error;
+      }
       toolTrace.push({ t: nowIso(), kind: "tool_result", name: String(toolName || ""), id: tcId, ok, ms, summary });
       writeToolTrace(toolTrace);
       messages.push({
