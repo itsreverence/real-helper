@@ -7,7 +7,7 @@ import {
   SPORTS,
 } from "../constants";
 import { getDebugMode } from "../state/storage";
-import type { Payload, Slot, PlayerPoolItem, SportInfo, GameInfo } from "../types";
+import type { Payload, Slot, PlayerPoolItem, SportInfo, GameInfo, GameMatchup } from "../types";
 
 type RGB = { r: number; g: number; b: number };
 
@@ -356,6 +356,144 @@ export function scrapeGamesFromSidebar(): GameInfo[] {
   }
 
   return games;
+}
+
+/**
+ * Detect if this is a game-specific draft by looking for "X [SPORT] entries remaining today".
+ * Game drafts are limited (e.g., 3 per sport per day) unlike league drafts.
+ */
+export function detectGameDraftEntries(): { isGameDraft: boolean; entriesRemaining: number | null; sport: string | null } {
+  // Pattern: "3 NBA entries remaining today"
+  const entriesRe = /^(\d+)\s+(NFL|NHL|NBA|MLB|CFB|CBB|FC|WNBA)\s+entr(?:y|ies)\s+remaining\s+today$/i;
+
+  const candidates = qsa<Element>("div");
+  for (const el of candidates) {
+    const t = (el.textContent || "").trim();
+    const match = t.match(entriesRe);
+    if (match) {
+      return {
+        isGameDraft: true,
+        entriesRemaining: parseInt(match[1], 10),
+        sport: match[2].toUpperCase(),
+      };
+    }
+  }
+  return { isGameDraft: false, entriesRemaining: null, sport: null };
+}
+
+/**
+ * Scrape the two teams from a game draft header.
+ * Works for upcoming games (time, spread) and finished games (scores).
+ * Live games: TODO - need sample HTML.
+ */
+export function scrapeGameMatchupFromHeader(): GameMatchup | null {
+  // The game header is near the draft modal - look for the container with team info
+  // It has a distinctive structure: border-bottom, contains two tabbable team divs
+  const headerCandidates = qsa<HTMLElement>("div").filter(el => {
+    const style = el.getAttribute("style") || "";
+    // Header has border-bottom and black background
+    if (!style.includes("border-bottom") && !style.includes("border-color")) return false;
+
+    const t = (el.textContent || "").trim();
+    // Must not have boost values (those are in the player pool)
+    if (/\+\d+\.?\d*x/i.test(t)) return false;
+    // Should have at least 2 team-like names (letters only, 3-15 chars)
+    const possibleTeams = t.match(/\b[A-Z][a-z]{2,14}\b/g) || [];
+    if (possibleTeams.length < 2) return false;
+
+    return true;
+  });
+
+  if (headerCandidates.length === 0) return null;
+
+  // Take the first (topmost) candidate that looks like a header
+  const header = headerCandidates[0];
+  const textDivs = Array.from(header.querySelectorAll('div[dir="auto"]'));
+
+  // Patterns
+  const recordPattern = /^\d{1,2}-\d{1,2}(-\d{1,2})?$/;  // "15-12" or "13-13-6"
+  const scorePattern = /^\d{1,3}$/;  // Score like "113", "124"
+  const timePattern = /^\d{1,2}:\d{2}\s*(AM|PM)$/i;  // "8:00 PM"
+  const spreadPattern = /^[A-Z]{2,4}\s+by\s+\d+(\.\d+)?$/i;  // "CLE by 5.5"
+
+  let team1 = "";
+  let team2 = "";
+  let team1_record: string | null = null;
+  let team2_record: string | null = null;
+  let team1_score: number | null = null;
+  let team2_score: number | null = null;
+  let time: string | null = null;
+  let spread: string | null = null;
+  let hasFinal = false;
+
+  const teams: string[] = [];
+  const records: string[] = [];
+  const scores: number[] = [];
+
+  for (const div of textDivs) {
+    const text = (div.textContent || "").trim();
+    if (!text) continue;
+
+    if (text.toLowerCase() === "final") {
+      hasFinal = true;
+    } else if (recordPattern.test(text)) {
+      records.push(text);
+    } else if (scorePattern.test(text)) {
+      scores.push(parseInt(text, 10));
+    } else if (timePattern.test(text)) {
+      time = text;
+    } else if (spreadPattern.test(text)) {
+      spread = text;
+    } else if (text.length >= 3 && text.length <= 20 && /^[A-Za-z]+$/.test(text)) {
+      // Team name - letters only, reasonable length
+      teams.push(text);
+    }
+  }
+
+  // Assign teams (first two found)
+  if (teams.length >= 2) {
+    team1 = teams[0];
+    team2 = teams[1];
+  } else if (teams.length === 1) {
+    team1 = teams[0];
+  }
+
+  // Assign records or scores based on game status
+  if (hasFinal && scores.length >= 2) {
+    // Finished game - assign scores
+    team1_score = scores[0];
+    team2_score = scores[1];
+  } else if (records.length >= 2) {
+    // Upcoming game - assign records
+    team1_record = records[0];
+    team2_record = records[1];
+  } else if (records.length === 1) {
+    team1_record = records[0];
+  }
+
+  // Determine status
+  let status: "upcoming" | "live" | "finished" = "upcoming";
+  if (hasFinal) {
+    status = "finished";
+  } else if (time) {
+    status = "upcoming";
+  }
+  // TODO: Live game detection when we have a sample
+
+  // Only return if we found at least one team
+  if (!team1) return null;
+
+  return {
+    team1,
+    team1_record,
+    team1_score,
+    team2,
+    team2_record,
+    team2_score,
+    time,
+    spread,
+    status,
+  };
 }
 
 export function findModalRoot(): Element | null {
@@ -786,8 +924,18 @@ export function buildPayload(opts: { includeDebug?: boolean } = {}): Payload {
   const domPool = parsePlayerPoolFromModalDom(modal);
   const player_pool = domPool.length > 0 ? domPool : parsePlayerPoolFromModalText(modalText);
 
-  // Scrape today's games from sidebar
-  const games = scrapeGamesFromSidebar();
+  // Detect if this is a game-specific draft (limited entries)
+  const gameDraftInfo = detectGameDraftEntries();
+  const draftType = gameDraftInfo.isGameDraft ? "game" : "league";
+
+  // For game drafts, scrape the matchup header instead of all sidebar games
+  let games: GameInfo[] = [];
+  let gameMatchup: GameMatchup | undefined;
+  if (gameDraftInfo.isGameDraft) {
+    gameMatchup = scrapeGameMatchupFromHeader() ?? undefined;
+  } else {
+    games = scrapeGamesFromSidebar();
+  }
 
   return {
     ok: true,
@@ -796,6 +944,9 @@ export function buildPayload(opts: { includeDebug?: boolean } = {}): Payload {
     captured_at: new Date().toISOString(),
     sport: sportInfo.sport,
     sport_detection_method: sportInfo.method,
+    draft_type: draftType,
+    ...(gameDraftInfo.isGameDraft ? { game_entries_remaining: gameDraftInfo.entriesRemaining } : {}),
+    ...(gameMatchup ? { game_matchup: gameMatchup } : {}),
     ...(includeDebug ? { sport_detection: sportInfo } : {}),
     ...(includeDebug ? { modal_text_sample: modalText.slice(0, 400) } : {}),
     expected_slots: expectedSlots,

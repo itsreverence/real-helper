@@ -110,3 +110,19 @@ Track testing of game schedule scraping from sidebar (below sport nav).
 - [ ] MLB
 
 > When you see a live game, capture the HTML and update this file!
+
+---
+
+## Game Draft Headers
+
+For game-specific drafts (single matchup), we need to scrape the header differently than league drafts.
+
+### Detection
+Look for "X [SPORT] entries remaining today" text (e.g., "3 NBA entries remaining today")
+
+### Header Samples Needed
+- [x] **Upcoming** - Shows time like "8:00 PM", team records, spread ✅ Have sample (Cavaliers vs Bulls)
+- [ ] **Live** - Shows current score, period/quarter/half
+- [x] **Finished** - Shows final scores ✅ Have sample (Spurs 113 - Knicks 124)
+
+> When you see a live game draft, capture the header HTML and update this file!

@@ -1,5 +1,5 @@
 import { MAX_POOL_IN_PROMPT } from "../constants";
-import type { PayloadOk, Slot, PlayerPoolItem, GameInfo } from "../types";
+import type { PayloadOk, Slot, PlayerPoolItem, GameInfo, GameMatchup } from "../types";
 
 function baseContext(payload: PayloadOk) {
   let slots: Slot[] = Array.isArray(payload?.slots) ? (payload.slots as Slot[]) : [];
@@ -35,10 +35,38 @@ function baseContext(payload: PayloadOk) {
         ? slots.length
         : 5;
 
-  // Build games context if available
+  // Determine draft type and build game context accordingly
+  const draftType = payload?.draft_type || "league";
+  const matchup = payload?.game_matchup as GameMatchup | undefined;
   const games: GameInfo[] = Array.isArray(payload?.games) ? payload.games : [];
-  const gamesLines = games.length > 0
-    ? games.map(g => {
+
+  // Build game/matchup context based on draft type
+  let gamesContext: string[] = [];
+  if (draftType === "game" && matchup) {
+    // Game draft: show single matchup
+    const team1Info = matchup.team1 + (matchup.team1_record ? ` (${matchup.team1_record})` : "");
+    const team2Info = matchup.team2 + (matchup.team2_record ? ` (${matchup.team2_record})` : "");
+    let statusLine = "";
+    if (matchup.status === "finished" && matchup.team1_score !== null && matchup.team2_score !== null) {
+      statusLine = `Final: ${matchup.team1} ${matchup.team1_score} - ${matchup.team2} ${matchup.team2_score}`;
+    } else if (matchup.time) {
+      statusLine = `Game time: ${matchup.time}`;
+    } else if (matchup.status === "live") {
+      statusLine = "Game in progress";
+    }
+    gamesContext = [
+      "### Game Draft (Single Matchup)",
+      "This is a GAME DRAFT for a specific matchup, not a league-wide draft.",
+      `Matchup: ${team1Info} vs ${team2Info}`,
+      ...(statusLine ? [statusLine] : []),
+      ...(matchup.spread ? [`Spread: ${matchup.spread}`] : []),
+      ...(typeof payload?.game_entries_remaining === "number" ? [`Entries remaining today: ${payload.game_entries_remaining}`] : []),
+      "All players in the pool are from these two teams ONLY.",
+      "",
+    ];
+  } else if (games.length > 0) {
+    // League draft: show all games
+    const gamesLines = games.map(g => {
       let suffix = "";
       if (g.status === "finished" && g.score) {
         suffix = ` (Final: ${g.score})`;
@@ -48,8 +76,14 @@ function baseContext(payload: PayloadOk) {
         suffix = " (Final)";
       }
       return `- ${g.team1} vs ${g.team2}${suffix}`;
-    }).join("\n")
-    : "";
+    }).join("\n");
+    gamesContext = [
+      "### Today's Games",
+      "The following games are scheduled. Players from these teams will be playing:",
+      gamesLines,
+      "",
+    ];
+  }
 
   const context = [
     "You are helping build an optimal Draft Lineup.",
@@ -59,13 +93,9 @@ function baseContext(payload: PayloadOk) {
     `Captured At: ${payload?.captured_at || "<unknown>"}`,
     `Capture Mode: ${payload?.mode || "<unknown>"}`,
     `Sport: ${payload?.sport || "<unknown>"}`,
+    `Draft Type: ${draftType === "game" ? "Game (single matchup)" : "League (all games)"}`,
     "",
-    ...(gamesLines ? [
-      "### Today's Games",
-      "The following games are scheduled. Players from these teams will be playing:",
-      gamesLines,
-      "",
-    ] : []),
+    ...gamesContext,
     "### Rules / how scoring multipliers work",
     `- You must select EXACTLY ${expectedSlots} unique players.`,
     "- Each lineup slot has a slot multiplier (e.g. 2.0x, 1.8x, 1.6x...).",

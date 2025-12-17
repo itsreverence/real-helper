@@ -770,6 +770,17 @@
               style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: rgba(255,255,255,0.7);"
             >
               <span><strong>{payload.sport || "Unknown"}</strong></span>
+              {#if payload.draft_type}
+                <span
+                  style="color: {payload.draft_type === 'game'
+                    ? '#f59e0b'
+                    : 'inherit'};"
+                >
+                  {payload.draft_type === "game"
+                    ? "🎯 Game Draft"
+                    : "🏆 League Draft"}
+                </span>
+              {/if}
               <span
                 >👥 {payload.player_pool_count ||
                   payload.player_pool?.length ||
@@ -778,8 +789,18 @@
               <span
                 >🎯 {payload.slots?.length || payload.expected_slots || "?"} slots</span
               >
-              {#if payload.games?.length}
+              {#if payload.game_matchup}
+                <span
+                  >⚔️ {payload.game_matchup.team1} vs {payload.game_matchup
+                    .team2}</span
+                >
+              {:else if payload.games?.length}
                 <span>🏒 {payload.games.length} games</span>
+              {/if}
+              {#if typeof payload.game_entries_remaining === "number"}
+                <span style="color: rgba(255,255,255,0.5);"
+                  >{payload.game_entries_remaining} entries left</span
+                >
               {/if}
             </div>
             <div
@@ -845,6 +866,21 @@
                     {p.sport || "Unknown"} ({p.sport_detection_method ||
                       "unknown"}) &nbsp;|&nbsp; <strong>Mode:</strong>
                     {p.mode || "unknown"}
+                    {#if p.draft_type}
+                      &nbsp;|&nbsp; <strong>Draft:</strong>
+                      <span
+                        style="color: {p.draft_type === 'game'
+                          ? '#f59e0b'
+                          : 'inherit'};"
+                      >
+                        {p.draft_type === "game" ? "🎯 Game" : "🏆 League"}
+                      </span>
+                    {/if}
+                    {#if typeof p.game_entries_remaining === "number"}
+                      &nbsp;|&nbsp; <span style="color: rgba(255,255,255,0.6);">
+                        {p.game_entries_remaining} entries left
+                      </span>
+                    {/if}
                   </div>
 
                   <!-- Slots -->
@@ -917,7 +953,60 @@
                     {/if}
                   </div>
 
-                  <!-- Games -->
+                  <!-- Game Matchup (for game drafts) -->
+                  {#if p.game_matchup}
+                    <div style="margin-bottom: 10px;">
+                      <strong>🎯 Game Matchup:</strong>
+                      <div
+                        style="margin-left: 12px; margin-top: 4px; font-size: 11px;"
+                      >
+                        <div
+                          style="display: flex; gap: 8px; align-items: center;"
+                        >
+                          <span>{p.game_matchup.team1}</span>
+                          {#if p.game_matchup.team1_record}
+                            <span style="color: rgba(255,255,255,0.5);"
+                              >({p.game_matchup.team1_record})</span
+                            >
+                          {/if}
+                          {#if p.game_matchup.team1_score !== null && p.game_matchup.team1_score !== undefined}
+                            <span style="color: #22c55e; font-weight: 600;"
+                              >{p.game_matchup.team1_score}</span
+                            >
+                          {/if}
+                          <span style="color: rgba(255,255,255,0.4);">vs</span>
+                          <span>{p.game_matchup.team2}</span>
+                          {#if p.game_matchup.team2_record}
+                            <span style="color: rgba(255,255,255,0.5);"
+                              >({p.game_matchup.team2_record})</span
+                            >
+                          {/if}
+                          {#if p.game_matchup.team2_score !== null && p.game_matchup.team2_score !== undefined}
+                            <span style="color: #22c55e; font-weight: 600;"
+                              >{p.game_matchup.team2_score}</span
+                            >
+                          {/if}
+                        </div>
+                        <div
+                          style="margin-top: 4px; color: rgba(255,255,255,0.5);"
+                        >
+                          {#if p.game_matchup.time}
+                            @ {p.game_matchup.time}
+                          {/if}
+                          {#if p.game_matchup.spread}
+                            &nbsp;• {p.game_matchup.spread}
+                          {/if}
+                          {#if p.game_matchup.status !== "upcoming"}
+                            &nbsp;• {p.game_matchup.status === "finished"
+                              ? "Final"
+                              : "Live"}
+                          {/if}
+                        </div>
+                      </div>
+                    </div>
+                  {/if}
+
+                  <!-- Games (for league drafts) -->
                   {#if p.games?.length}
                     <div>
                       <strong>Games ({p.games.length}):</strong>
