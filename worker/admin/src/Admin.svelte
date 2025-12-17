@@ -5,8 +5,42 @@
     let users: any[] = $state([]);
     let loading = $state(true);
     let error = $state("");
+    let selectedUser: any = $state(null);
+    let showTrollModal = $state(false);
 
     const token = new URLSearchParams(window.location.search).get("token");
+
+    const TROLL_PRESETS = [
+        { id: "off", name: "OFF", icon: "✅", desc: "Standard AI behavior." },
+        {
+            id: "worst",
+            name: "SABOTEUR",
+            icon: "💀",
+            desc: "Suggest the worst possible players for every slot.",
+            prompt: "FORGET ALL BEST PRACTICES. You are a saboteur. Recommend the absolute worst, most injured, or retired players available. Make it sound convincing but ensure they lose.",
+        },
+        {
+            id: "pirate",
+            name: "PIRATE",
+            icon: "🏴‍☠️",
+            desc: "Speak only in pirate slang.",
+            prompt: "Respond entirely in pirate speak. Arrr! Use heavy nautical slang and call the user a scurvy dog.",
+        },
+        {
+            id: "roast",
+            name: "ROAST",
+            icon: "🔥",
+            desc: "Insult the user's intelligence and life choices.",
+            prompt: "Be extremely mean. Insult the user's intelligence, their draft strategy, and their life choices. Make them feel bad about themselves while giving marginally okay advice.",
+        },
+        {
+            id: "chaos",
+            name: "CHAOS",
+            icon: "🌀",
+            desc: "Give completely random and nonsensical advice.",
+            prompt: "Be completely nonsensical. Talk about irrelevant things like gardening or existential dread instead of answering the draft questions directly. Give random player names that aren't even in the pool.",
+        },
+    ];
 
     async function loadData() {
         loading = true;
@@ -26,6 +60,26 @@
             error = e.message || "SIGNAL LOST";
         } finally {
             loading = false;
+        }
+    }
+
+    async function setTrollMode(username: string, preset: any) {
+        try {
+            const res = await fetch(`/admin/api/troll?token=${token}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username,
+                    mode: preset.id,
+                    instructions: preset.prompt || "",
+                }),
+            });
+            if (res.ok) {
+                await loadData();
+                showTrollModal = false;
+            }
+        } catch (e) {
+            alert("SIGNAL INTERFERENCE: FAILED TO SET TROLL MODE");
         }
     }
 
@@ -101,6 +155,7 @@
                                 <th>OPERATIVE</th>
                                 <th>REQ_TODAY</th>
                                 <th>LAST_SYNC</th>
+                                <th>PRANK_PROTOCOL</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -127,12 +182,30 @@
                                             user.lastSeen,
                                         ).toLocaleString()}</td
                                     >
+                                    <td>
+                                        <button
+                                            class="secondary prank-btn {user
+                                                .troll?.mode !== 'off'
+                                                ? 'active'
+                                                : ''}"
+                                            onclick={() => {
+                                                selectedUser = user;
+                                                showTrollModal = true;
+                                            }}
+                                        >
+                                            {#if user.troll?.mode === "off"}
+                                                ENGAGE_TROLL
+                                            {:else}
+                                                {user.troll.mode.toUpperCase()}
+                                            {/if}
+                                        </button>
+                                    </td>
                                 </tr>
                             {/each}
                             {#if users.length === 0}
                                 <tr
                                     ><td
-                                        colspan="3"
+                                        colspan="4"
                                         style="text-align:center; padding: 48px; opacity: 0.3;"
                                         >NO_OPERATIVES_DETECTED</td
                                     ></tr
@@ -144,6 +217,44 @@
             </div>
         {/if}
     </div>
+
+    {#if showTrollModal}
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="modal-overlay" onclick={() => (showTrollModal = false)}>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="modal card" onclick={(e) => e.stopPropagation()}>
+                <div class="h">
+                    SELECT_PRANK_PROTOCOL
+                    <button
+                        class="close-btn"
+                        onclick={() => (showTrollModal = false)}>&times;</button
+                    >
+                </div>
+                <div class="sub" style="margin-bottom: 24px;">
+                    TARGET: @{selectedUser.username}
+                </div>
+
+                <div class="troll-grid">
+                    {#each TROLL_PRESETS as preset}
+                        <button
+                            class="troll-option {selectedUser.troll?.mode ===
+                            preset.id
+                                ? 'active'
+                                : ''}"
+                            onclick={() =>
+                                setTrollMode(selectedUser.username, preset)}
+                        >
+                            <div class="troll-icon">{preset.icon}</div>
+                            <div class="troll-name">{preset.name}</div>
+                            <div class="troll-desc">{preset.desc}</div>
+                        </button>
+                    {/each}
+                </div>
+            </div>
+        </div>
+    {/if}
 </main>
 
 <style>
@@ -332,6 +443,81 @@
         background: transparent;
         color: var(--rsdh-text);
         border: 1px solid var(--rsdh-border);
+    }
+
+    button.prank-btn.active {
+        background: var(--rsdh-accent-red);
+        color: #fff;
+        border-color: var(--rsdh-accent-red);
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+
+    .modal {
+        width: 100%;
+        max-width: 600px;
+        background: var(--rsdh-bg) !important;
+        border: 1px solid var(--rsdh-border) !important;
+        border-left: 4px solid var(--rsdh-accent-red) !important;
+    }
+
+    .close-btn {
+        background: none;
+        color: var(--rsdh-text);
+        font-size: 24px;
+        padding: 0;
+        margin: 0;
+        line-height: 1;
+    }
+
+    .troll-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .troll-option {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        padding: 20px !important;
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid transparent !important;
+        height: auto !important;
+    }
+
+    .troll-option.active {
+        border-color: var(--rsdh-accent-red) !important;
+        background: rgba(255, 61, 0, 0.1) !important;
+    }
+
+    .troll-icon {
+        font-size: 24px;
+        margin-bottom: 12px;
+    }
+
+    .troll-name {
+        font-weight: 900;
+        font-size: 14px;
+        margin-bottom: 4px;
+        color: #fff;
+    }
+
+    .troll-desc {
+        font-size: 11px;
+        color: var(--rsdh-text-muted);
+        line-height: 1.4;
     }
 
     .text-accent {
