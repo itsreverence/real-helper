@@ -612,42 +612,63 @@
           placeholder="sk-or-..."
         />
       {/if}
-      <label class="sub" for="or-model">Model</label>
-      <input
-        id="or-model"
-        style="width:100%; margin-bottom:8px;"
-        type="text"
-        bind:value={model}
-        list="model-list"
-        placeholder="Start typing to search..."
-      />
-      <datalist id="model-list">
-        {#each availableModels as m}
-          <option value={m}>{m}</option>
-        {/each}
-      </datalist>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-        <div>
-          <label class="sub" for="or-temp">Temperature: {temperature}</label>
-          <input
-            id="or-temp"
-            style="width:100%;"
-            type="range"
-            min="0"
-            max="2"
-            step="0.1"
-            bind:value={temperature}
-          />
-        </div>
-        <div>
-          <label class="sub" for="or-max">Max tokens</label>
-          <input
-            id="or-max"
-            style="width:100%;"
-            type="text"
-            bind:value={maxTokens}
-          />
-        </div>
+      <div
+        style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;"
+      >
+        {#if bypassProxy}
+          <div>
+            <label class="sub" for="or-model">Model</label>
+            <input
+              id="or-model"
+              style="width:100%; margin-bottom:8px;"
+              type="text"
+              bind:value={model}
+              list="model-list"
+              placeholder="Start typing to search..."
+            />
+            <datalist id="model-list">
+              {#each availableModels as m}
+                <option value={m}>{m}</option>
+              {/each}
+            </datalist>
+          </div>
+          <div>
+            <label class="sub" for="or-max">Max tokens</label>
+            <input
+              id="or-max"
+              style="width:100%;"
+              type="text"
+              bind:value={maxTokens}
+            />
+          </div>
+          <div style="grid-column: span 2;">
+            <label class="sub" for="or-temp">Temperature: {temperature}</label>
+            <input
+              id="or-temp"
+              style="width:100%;"
+              type="range"
+              min="0"
+              max="2"
+              step="0.1"
+              bind:value={temperature}
+            />
+          </div>
+        {:else}
+          <div
+            style="grid-column: span 2; padding: 12px; background: rgba(0,229,255,0.05); border: 1px dashed var(--rsdh-accent); border-radius: 4px; text-align: center;"
+          >
+            <div
+              class="sub"
+              style="color: var(--rsdh-accent); font-weight: 800;"
+            >
+              🤖 MANAGED_BY_ADMIN
+            </div>
+            <div class="sub" style="font-size: 9px; margin-top: 4px;">
+              AI Model & Sampling parameters are optimized centrally for this
+              session.
+            </div>
+          </div>
+        {/if}
       </div>
       <label
         style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-top: 12px;"

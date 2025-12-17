@@ -3,10 +3,19 @@
 
     let stats: any = $state(null);
     let users: any[] = $state([]);
+    let globalConfig: any = $state({
+        defaultModel: "any",
+        temperature: 1.0,
+        maxTokens: 4096,
+    });
     let loading = $state(true);
     let error = $state("");
+    let searchQuery = $state("");
     let selectedUser: any = $state(null);
     let showTrollModal = $state(false);
+
+    // For the modal
+    let modalForcedModel = $state("");
 
     const token = new URLSearchParams(window.location.search).get("token");
 
@@ -48,14 +57,16 @@
         try {
             const statsRes = await fetch(`/admin/api/stats?token=${token}`);
             const usersRes = await fetch(`/admin/api/users?token=${token}`);
+            const configRes = await fetch(`/admin/api/config?token=${token}`);
 
-            if (!statsRes.ok || !usersRes.ok) {
+            if (!statsRes.ok || !usersRes.ok || !configRes.ok) {
                 throw new Error("UNAUTHORIZED ACCESS DETECTED");
             }
 
             stats = await statsRes.json();
             const userData = await usersRes.json();
             users = userData.users || [];
+            globalConfig = await configRes.json();
         } catch (e: any) {
             error = e.message || "SIGNAL LOST";
         } finally {
@@ -63,7 +74,26 @@
         }
     }
 
-    async function setTrollMode(username: string, preset: any) {
+    async function saveGlobalConfig() {
+        try {
+            const res = await fetch(`/admin/api/config?token=${token}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(globalConfig),
+            });
+            if (res.ok) {
+                alert("GLOBAL_LOGISTICS_UPDATED");
+            }
+        } catch (e) {
+            alert("CONFIG_UPLOAD_FAILURE");
+        }
+    }
+
+    async function updateUserConfig(
+        username: string,
+        preset: any,
+        forcedModel: string,
+    ) {
         try {
             const res = await fetch(`/admin/api/troll?token=${token}`, {
                 method: "POST",
@@ -72,6 +102,7 @@
                     username,
                     mode: preset.id,
                     instructions: preset.prompt || "",
+                    forcedModel: forcedModel || undefined,
                 }),
             });
             if (res.ok) {
@@ -79,9 +110,23 @@
                 showTrollModal = false;
             }
         } catch (e) {
-            alert("SIGNAL INTERFERENCE: FAILED TO SET TROLL MODE");
+            alert("SIGNAL INTERFERENCE: FAILED TO UPDATE USER CONFIG");
         }
     }
+
+    const filteredUsers = $derived(
+        users.filter(
+            (u) =>
+                u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (u.displayName || "")
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase()),
+        ),
+    );
+
+    const modelEntries = $derived(
+        stats?.modelUsage ? Object.entries(stats.modelUsage) : [],
+    );
 
     onMount(() => {
         loadData();
@@ -110,44 +155,148 @@
                 <div class="sub">{error}</div>
             </div>
         {:else}
-            <div class="grid">
+            <div class="grid top-grid">
                 <div class="card stat-card">
-                    <div class="h">DAILY_THROUGHPUT</div>
-                    <div class="stat-value">{stats?.totalRequests || 0}</div>
-                    <div class="sub">TOTAL_SESSION_REQUESTS</div>
+                    <div class="h">GLOBAL_LOGISTICS</div>
+                    <div class="list diag-list">
+                        <div
+                            class="diag-row"
+                            style="flex-direction: column; align-items: flex-start; gap: 8px; border-bottom: none;"
+                        >
+                            <span class="diag-label">ENFORCED_MODEL</span>
+                            <div
+                                class="search-wrap"
+                                style="max-width: none; width: 100%;"
+                            >
+                                <input
+                                    type="text"
+                                    placeholder="e.g. google/gemini-2.0-flash-exp:free (or 'any')"
+                                    bind:value={globalConfig.defaultModel}
+                                />
+                            </div>
+
+                            <div
+                                style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; width: 100%; margin-top: 4px;"
+                            >
+                                <div>
+                                    <span class="diag-label"
+                                        >TEMP: {globalConfig.temperature}</span
+                                    >
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="2"
+                                        step="0.1"
+                                        bind:value={globalConfig.temperature}
+                                        style="width: 100%;"
+                                    />
+                                </div>
+                                <div>
+                                    <span class="diag-label">MAX_TOKENS</span>
+                                    <div
+                                        class="search-wrap"
+                                        style="padding: 4px 12px;"
+                                    >
+                                        <input
+                                            type="number"
+                                            bind:value={globalConfig.maxTokens}
+                                            style="width: 100%;"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                class="secondary"
+                                style="width: 100%; margin-top: 8px;"
+                                onclick={saveGlobalConfig}
+                                >COMMIT_RESTRICTION</button
+                            >
+                        </div>
+                    </div>
                 </div>
 
-                <div class="card">
+                <div class="card stat-card">
+                    <div class="h">SYSTEM_DIAGNOSTICS</div>
+                    <div class="list diag-list">
+                        <div class="diag-row">
+                            <span class="diag-label">ACTIVE_USERS_TODAY</span>
+                            <span class="diag-value text-accent"
+                                >{stats?.uniqueUsersToday || 0}</span
+                            >
+                        </div>
+                        <div class="diag-row">
+                            <span class="diag-label">TOTAL_OPERATIVES</span>
+                            <span class="diag-value text-green"
+                                >{stats?.totalUsersEver || 0}</span
+                            >
+                        </div>
+                        <div class="diag-row">
+                            <span class="diag-label">CORE_STATUS</span>
+                            <span class="diag-value text-green status-pulsing"
+                                >OPTIMAL</span
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card model-card">
                     <div class="h">MODEL_DISTRIBUTION</div>
-                    <div class="list">
-                        {#if stats?.modelUsage}
-                            {#each Object.entries(stats.modelUsage) as [model, count]}
-                                <div class="row">
-                                    <div class="font-mono text-accent">
-                                        {model}
+                    <div class="list model-list">
+                        {#if modelEntries.length > 0}
+                            {#each modelEntries as [model, count]}
+                                <div class="model-row">
+                                    <div class="model-info">
+                                        <span class="font-mono text-accent"
+                                            >{model}</span
+                                        >
+                                        <span class="font-mono text-green"
+                                            >{count}</span
+                                        >
                                     </div>
-                                    <div class="font-mono text-green">
-                                        {count}
+                                    <div class="model-bar-bg">
+                                        <div
+                                            class="model-bar"
+                                            style="width: {((count as number) /
+                                                (stats?.totalRequests || 1)) *
+                                                100}%"
+                                        ></div>
                                     </div>
                                 </div>
                             {/each}
                         {:else}
-                            <div class="sub">NO_MODEL_DATA_RETURNED</div>
+                            <div class="empty-state">
+                                <div class="empty-icon">📡</div>
+                                <div class="sub">
+                                    NO_MODEL_SIGNALS_DETECTED_TODAY
+                                </div>
+                            </div>
                         {/if}
                     </div>
                 </div>
             </div>
 
             <div
-                class="card"
+                class="card active-card"
                 style="border-left-color: var(--rsdh-accent-green);"
             >
-                <div class="h">
-                    <span>ACTIVE_OPERATIVES</span>
-                    <span class="status-pill text-green status-pulsing"
-                        >LIVE_FEED</span
-                    >
+                <div class="h table-header">
+                    <div class="flex-row">
+                        <span>ACTIVE_OPERATIVES</span>
+                        <span class="status-pill text-green status-pulsing"
+                            >LIVE_FEED</span
+                        >
+                    </div>
+                    <div class="search-wrap">
+                        <div class="search-icon">🔍</div>
+                        <input
+                            type="text"
+                            placeholder="SEARCH_OPERATIVE_ID..."
+                            bind:value={searchQuery}
+                        />
+                    </div>
                 </div>
+
                 <div class="table-wrap">
                     <table class="table">
                         <thead>
@@ -159,17 +308,36 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {#each users as user}
-                                <tr>
+                            {#each filteredUsers as user}
+                                <tr
+                                    class={user.troll?.mode !== "off"
+                                        ? "row-troll-active"
+                                        : ""}
+                                >
                                     <td>
-                                        <div style="font-weight: 800;">
-                                            {user.displayName || "ANONYMOUS"}
-                                        </div>
-                                        <div
-                                            class="font-mono"
-                                            style="font-size: 10px; opacity: 0.5;"
-                                        >
-                                            {user.username}
+                                        <div class="operative-cell">
+                                            {#if user.troll?.mode !== "off"}
+                                                <span class="troll-tag"
+                                                    >PRANK_ACTIVE</span
+                                                >
+                                            {/if}
+                                            {#if user.troll?.forcedModel}
+                                                <span
+                                                    class="troll-tag"
+                                                    style="background: var(--rsdh-accent); color: #000;"
+                                                    >MODEL_ENFORCED</span
+                                                >
+                                            {/if}
+                                            <div style="font-weight: 800;">
+                                                {user.displayName ||
+                                                    "ANONYMOUS"}
+                                            </div>
+                                            <div
+                                                class="font-mono"
+                                                style="font-size: 10px; opacity: 0.5;"
+                                            >
+                                                @{user.username}
+                                            </div>
                                         </div>
                                     </td>
                                     <td class="font-mono text-accent"
@@ -190,11 +358,14 @@
                                                 : ''}"
                                             onclick={() => {
                                                 selectedUser = user;
+                                                modalForcedModel =
+                                                    user.troll?.forcedModel ||
+                                                    "";
                                                 showTrollModal = true;
                                             }}
                                         >
                                             {#if user.troll?.mode === "off"}
-                                                ENGAGE_TROLL
+                                                MANAGE_CONFIG
                                             {:else}
                                                 {user.troll.mode.toUpperCase()}
                                             {/if}
@@ -202,14 +373,19 @@
                                     </td>
                                 </tr>
                             {/each}
-                            {#if users.length === 0}
-                                <tr
-                                    ><td
-                                        colspan="4"
-                                        style="text-align:center; padding: 48px; opacity: 0.3;"
-                                        >NO_OPERATIVES_DETECTED</td
-                                    ></tr
-                                >
+                            {#if filteredUsers.length === 0}
+                                <tr>
+                                    <td colspan="4">
+                                        <div class="empty-state table-empty">
+                                            <div class="empty-icon">📂</div>
+                                            <div class="sub">
+                                                {searchQuery
+                                                    ? "NO_MATCHING_OPERATIVES"
+                                                    : "NO_OPERATIVES_DETECTED"}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
                             {/if}
                         </tbody>
                     </table>
@@ -226,7 +402,7 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="modal card" onclick={(e) => e.stopPropagation()}>
                 <div class="h">
-                    SELECT_PRANK_PROTOCOL
+                    OPERATIVE_CONFIGURATION
                     <button
                         class="close-btn"
                         onclick={() => (showTrollModal = false)}>&times;</button
@@ -236,6 +412,31 @@
                     TARGET: @{selectedUser.username}
                 </div>
 
+                <div class="config-section">
+                    <div
+                        class="h"
+                        style="margin-bottom: 12px; font-size: 10px; opacity: 0.7;"
+                    >
+                        MODEL_ASSIGNMENT
+                    </div>
+                    <div
+                        class="search-wrap"
+                        style="max-width: none; margin-bottom: 16px;"
+                    >
+                        <input
+                            type="text"
+                            placeholder="FORCE_SPECIFIC_MODEL (e.g. meta-llama/llama-3-8b-instruct)..."
+                            bind:value={modalForcedModel}
+                        />
+                    </div>
+                </div>
+
+                <div
+                    class="h"
+                    style="margin-bottom: 12px; font-size: 10px; opacity: 0.7;"
+                >
+                    SIGNAL_INTERCEPTION_PROTOCOLS
+                </div>
                 <div class="troll-grid">
                     {#each TROLL_PRESETS as preset}
                         <button
@@ -244,7 +445,11 @@
                                 ? 'active'
                                 : ''}"
                             onclick={() =>
-                                setTrollMode(selectedUser.username, preset)}
+                                updateUserConfig(
+                                    selectedUser.username,
+                                    preset,
+                                    modalForcedModel,
+                                )}
                         >
                             <div class="troll-icon">{preset.icon}</div>
                             <div class="troll-name">{preset.name}</div>
@@ -330,15 +535,15 @@
     .content {
         flex: 1;
         padding: 40px;
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
         width: 100%;
         z-index: 20;
     }
 
-    .grid {
+    .top-grid {
         display: grid;
-        grid-template-columns: 1fr 2fr;
+        grid-template-columns: 1.25fr 0.9fr 1.85fr;
         gap: 24px;
         margin-bottom: 24px;
     }
@@ -367,12 +572,68 @@
         align-items: center;
     }
 
-    .stat-value {
-        font-size: 48px;
+    .diag-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .diag-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--rsdh-border);
+        padding-bottom: 8px;
+    }
+
+    .diag-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--rsdh-text-muted);
+        text-transform: uppercase;
+    }
+
+    .diag-value {
+        font-family: "JetBrains Mono", monospace;
         font-weight: 900;
-        color: var(--rsdh-accent);
-        letter-spacing: -0.02em;
-        margin-bottom: 8px;
+        font-size: 16px;
+    }
+
+    .model-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .model-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .model-info {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .model-bar-bg {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .model-bar {
+        height: 100%;
+        background: linear-gradient(
+            90deg,
+            var(--rsdh-accent),
+            var(--rsdh-accent-green)
+        );
+        box-shadow: 0 0 10px var(--rsdh-accent);
+        transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .sub {
@@ -382,17 +643,80 @@
         color: var(--rsdh-text-muted);
     }
 
-    .list {
+    .empty-state {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        align-items: center;
+        justify-content: center;
+        padding: 32px;
+        text-align: center;
+        opacity: 0.5;
     }
 
-    .row {
+    .empty-icon {
+        font-size: 32px;
+        margin-bottom: 12px;
+    }
+
+    .table-header {
         display: flex;
         justify-content: space-between;
-        padding-bottom: 8px;
-        border-bottom: 1px solid var(--rsdh-border);
+        align-items: center;
+        margin-bottom: 24px;
+        gap: 20px;
+    }
+
+    .search-wrap {
+        display: flex;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--rsdh-border);
+        padding: 8px 16px;
+        border-radius: 4px;
+        flex: 1;
+        max-width: 400px;
+    }
+
+    .search-icon {
+        font-size: 14px;
+        margin-right: 12px;
+        opacity: 0.5;
+    }
+
+    .search-wrap input {
+        background: none;
+        border: none;
+        color: #fff;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        width: 100%;
+        outline: none;
+    }
+
+    .search-wrap input::placeholder {
+        color: rgba(255, 255, 255, 0.2);
+    }
+
+    .operative-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        position: relative;
+    }
+
+    .troll-tag {
+        font-size: 8px;
+        font-weight: 900;
+        color: #fff;
+        background: var(--rsdh-accent-red);
+        padding: 2px 6px;
+        border-radius: 2px;
+        align-self: flex-start;
+        margin-bottom: 2px;
+    }
+
+    .row-troll-active {
+        background: rgba(255, 61, 0, 0.05);
     }
 
     .table-wrap {
@@ -469,6 +793,7 @@
         background: var(--rsdh-bg) !important;
         border: 1px solid var(--rsdh-border) !important;
         border-left: 4px solid var(--rsdh-accent-red) !important;
+        padding-bottom: 40px !important;
     }
 
     .close-btn {
@@ -571,5 +896,18 @@
         100% {
             opacity: 1;
         }
+    }
+
+    input[type="range"] {
+        accent-color: var(--rsdh-accent);
+    }
+
+    input[type="number"] {
+        background: none;
+        border: none;
+        color: #fff;
+        font-family: inherit;
+        font-size: 12px;
+        outline: none;
     }
 </style>
