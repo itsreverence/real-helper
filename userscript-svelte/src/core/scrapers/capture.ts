@@ -385,142 +385,146 @@ export function detectGameDraftEntries(): { isGameDraft: boolean; entriesRemaini
  * Scrape the two teams from a game draft header.
  * Works for upcoming games (time, spread) and finished games (scores).
  * Live games: TODO - need sample HTML.
+ * 
+ * Structure: The header has 2 team sections (div[tabindex="0"]) each containing:
+ * - Team logo image
+ * - Team record (like "15-12") 
+ * - Team name (like "Cavaliers")
  */
 export function scrapeGameMatchupFromHeader(): GameMatchup | null {
   // Words to exclude from team names (navigation, UI elements)
   const excludeWords = new Set([
     "games", "game", "nfl", "nba", "nhl", "mlb", "cfb", "cbb", "wnba", "fc",
     "ufc", "golf", "final", "live", "upcoming", "finished", "draft", "update",
-    "submit", "cancel", "close", "settings", "home", "profile", "menu"
+    "submit", "cancel", "close", "settings", "home", "profile", "menu", "pm", "am"
   ]);
 
-  // The game header has team logo images - look for containers with images
-  // that also have team-like text nearby
+  // Look for the game header by its unique structure:
+  // Must contain exactly 2 tabbable team sections (div[tabindex="0"]) each with a team logo
   const headerCandidates = qsa<HTMLElement>("div").filter(el => {
-    // Must have team logo images (usually .webp)
-    const imgs = el.querySelectorAll("img");
-    if (imgs.length < 2) return false;
+    const style = el.getAttribute("style") || "";
 
-    // Check if images look like team logos (small, from media.realapp.com)
-    const teamLogos = Array.from(imgs).filter(img => {
-      const src = img.getAttribute("src") || "";
-      const r = img.getBoundingClientRect();
-      return src.includes("media.realapp.com") && r.width >= 20 && r.width <= 80;
+    // Header typically has black background and border-bottom
+    const hasBlackBg = style.includes("background-color: rgb(0, 0, 0)") ||
+      style.includes("background-color:rgb(0,0,0)");
+    const hasBorderBottom = style.includes("border-bottom") || style.includes("border-color");
+
+    if (!hasBlackBg || !hasBorderBottom) return false;
+
+    // Find team sections - tabbable divs that contain team logo images
+    const teamSections = Array.from(el.querySelectorAll('div[tabindex="0"]')).filter(sec => {
+      const imgs = sec.querySelectorAll("img");
+      return Array.from(imgs).some(img => {
+        const src = img.getAttribute("src") || "";
+        return src.includes("media.realapp.com/assets/teams");
+      });
     });
-    if (teamLogos.length < 2) return false;
 
+    // Must have exactly 2 team sections
+    if (teamSections.length !== 2) return false;
+
+    // Must not have boost values (those are in the player pool modal)
     const t = (el.textContent || "").trim();
-    // Must not have boost values (those are in the player pool)
     if (/\+\d+\.?\d*x/i.test(t)) return false;
 
-    // Should have records (like 15-12) which are a strong signal of game header
-    const hasRecords = /\b\d{1,2}-\d{1,2}\b/.test(t);
-
-    // Reasonable size for header
-    const r = el.getBoundingClientRect();
-    if (r.width < 200 || r.height < 40 || r.height > 200) return false;
-
-    return hasRecords;
+    return true;
   });
 
   if (headerCandidates.length === 0) return null;
 
-  // Sort by fewer children (to get the most specific container)
-  headerCandidates.sort((a, b) => {
-    const aChildren = a.querySelectorAll("*").length;
-    const bChildren = b.querySelectorAll("*").length;
-    return aChildren - bChildren;
-  });
-
-  // Take the smallest container that matches
+  // Take the first matching header
   const header = headerCandidates[0];
-  const textDivs = Array.from(header.querySelectorAll('div[dir="auto"]'));
+
+  // Get the 2 team sections
+  const teamSections = Array.from(header.querySelectorAll('div[tabindex="0"]')).filter(sec => {
+    const imgs = sec.querySelectorAll("img");
+    return Array.from(imgs).some(img => {
+      const src = img.getAttribute("src") || "";
+      return src.includes("media.realapp.com/assets/teams");
+    });
+  }).slice(0, 2);
 
   // Patterns
   const recordPattern = /^\d{1,2}-\d{1,2}(-\d{1,2})?$/;  // "15-12" or "13-13-6"
   const scorePattern = /^\d{1,3}$/;  // Score like "113", "124"
-  const timePattern = /^\d{1,2}:\d{2}\s*(AM|PM)$/i;  // "8:00 PM"
-  const spreadPattern = /^[A-Z]{2,4}\s+by\s+\d+(\.\d+)?$/i;  // "CLE by 5.5"
 
-  let team1 = "";
-  let team2 = "";
-  let team1_record: string | null = null;
-  let team2_record: string | null = null;
-  let team1_score: number | null = null;
-  let team2_score: number | null = null;
+  // Extract team info from each team section
+  function extractTeamInfo(section: Element): { name: string; record: string | null; score: number | null } {
+    const textDivs = Array.from(section.querySelectorAll('div[dir="auto"]'));
+    let name = "";
+    let record: string | null = null;
+    let score: number | null = null;
+
+    for (const div of textDivs) {
+      const text = (div.textContent || "").trim();
+      if (!text) continue;
+
+      const lowerText = text.toLowerCase();
+      if (excludeWords.has(lowerText)) continue;
+
+      if (recordPattern.test(text)) {
+        record = text;
+      } else if (scorePattern.test(text)) {
+        score = parseInt(text, 10);
+      } else if (text.length >= 3 && text.length <= 25 && /^[A-Za-z]+$/.test(text)) {
+        // Team name - letters only, reasonable length
+        name = text;
+      }
+    }
+
+    return { name, record, score };
+  }
+
+  const team1Info = teamSections.length >= 1 ? extractTeamInfo(teamSections[0]) : { name: "", record: null, score: null };
+  const team2Info = teamSections.length >= 2 ? extractTeamInfo(teamSections[1]) : { name: "", record: null, score: null };
+
+  // If we couldn't find team names, this isn't the right header
+  if (!team1Info.name && !team2Info.name) return null;
+
+  // Get additional info from the center section (time, spread)
   let time: string | null = null;
   let spread: string | null = null;
   let hasFinal = false;
 
-  const teams: string[] = [];
-  const records: string[] = [];
-  const scores: number[] = [];
+  // Look for time pattern in the full header text
+  const headerText = header.textContent || "";
+  const timeMatch = headerText.match(/\d{1,2}:\d{2}\s*(AM|PM)/i);
+  if (timeMatch) {
+    time = timeMatch[0];
+  }
 
-  for (const div of textDivs) {
+  // Look for spread and final in text divs not in team sections
+  const teamSectionNodes = new Set(teamSections.flatMap(s => Array.from(s.querySelectorAll('div[dir="auto"]'))));
+  const allTextDivs = Array.from(header.querySelectorAll('div[dir="auto"]'));
+
+  for (const div of allTextDivs) {
+    if (teamSectionNodes.has(div)) continue;
+
     const text = (div.textContent || "").trim();
-    if (!text) continue;
-
     const lowerText = text.toLowerCase();
-
-    // Skip excluded words
-    if (excludeWords.has(lowerText)) continue;
 
     if (lowerText === "final") {
       hasFinal = true;
-    } else if (recordPattern.test(text)) {
-      records.push(text);
-    } else if (scorePattern.test(text)) {
-      scores.push(parseInt(text, 10));
-    } else if (timePattern.test(text)) {
-      time = text;
-    } else if (spreadPattern.test(text)) {
+    } else if (/^[A-Z]{2,4}\s+by\s+\d+(\.\d+)?$/i.test(text)) {
       spread = text;
-    } else if (text.length >= 3 && text.length <= 20 && /^[A-Za-z]+$/.test(text)) {
-      // Team name - letters only, reasonable length, not in exclude list
-      teams.push(text);
     }
-  }
-
-  // Assign teams (first two found that aren't excluded)
-  if (teams.length >= 2) {
-    team1 = teams[0];
-    team2 = teams[1];
-  } else if (teams.length === 1) {
-    team1 = teams[0];
-  }
-
-  // Assign records or scores based on game status
-  if (hasFinal && scores.length >= 2) {
-    // Finished game - assign scores
-    team1_score = scores[0];
-    team2_score = scores[1];
-  } else if (records.length >= 2) {
-    // Upcoming game - assign records
-    team1_record = records[0];
-    team2_record = records[1];
-  } else if (records.length === 1) {
-    team1_record = records[0];
   }
 
   // Determine status
   let status: "upcoming" | "live" | "finished" = "upcoming";
-  if (hasFinal) {
+  if (hasFinal || (team1Info.score !== null && team2Info.score !== null)) {
     status = "finished";
   } else if (time) {
     status = "upcoming";
   }
-  // TODO: Live game detection when we have a sample
-
-  // Only return if we found at least one valid team
-  if (!team1 || excludeWords.has(team1.toLowerCase())) return null;
 
   return {
-    team1,
-    team1_record,
-    team1_score,
-    team2,
-    team2_record,
-    team2_score,
+    team1: team1Info.name,
+    team1_record: team1Info.record,
+    team1_score: team1Info.score,
+    team2: team2Info.name,
+    team2_record: team2Info.record,
+    team2_score: team2Info.score,
     time,
     spread,
     status,
