@@ -1,0 +1,19 @@
+{
+    "name": "rsdh-worker-admin",
+    "private": true,
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build && node tools/inject.mjs",
+        "inject": "node tools/inject.mjs",
+        "preview": "vite preview"
+    },
+    "devDependencies": {
+        "@sveltejs/vite-plugin-svelte": "^5.0.3",
+        "svelte": "^5.17.3",
+        "typescript": "^5.7.3",
+        "vite": "^6.0.7",
+        "vite-plugin-singlefile": "^2.1.0"
+    }
+}
