@@ -37,6 +37,7 @@
     ENABLE_SEARCH_TOOL_KEY,
     LINEUP_STRATEGY_KEY,
     USE_PROXY,
+    PROXY_ENDPOINT,
   } from "../core";
   import { gmGet, gmSet } from "../core";
   import {
@@ -83,6 +84,13 @@
   let enableWebSearch = true; // Enable AI to search the web
   let enableSearchTool = true; // Enable AI to search draft players
   let lineupStrategy = "balanced"; // safe | balanced | risky
+
+  // Managed config from proxy
+  let managedConfig: {
+    defaultModel?: string;
+    temperature?: number;
+    maxTokens?: number;
+  } | null = null;
 
   // User identity for profile linking
   let linkedUser: UserIdentity | null = null;
@@ -183,6 +191,18 @@
     fetchOpenRouterModels().then((models) => {
       availableModels = models;
     });
+
+    // Fetch managed config from proxy
+    if (USE_PROXY && PROXY_ENDPOINT) {
+      fetch(`${PROXY_ENDPOINT}/api/info`)
+        .then((res) => res.json())
+        .then((config) => {
+          managedConfig = config;
+        })
+        .catch(() => {
+          /* ignore */
+        });
+    }
 
     const onDocClick = (ev: MouseEvent) => {
       if (!askMenuOpen) return;
@@ -615,58 +635,81 @@
       <div
         style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;"
       >
-        {#if bypassProxy}
-          <div>
-            <label class="sub" for="or-model">Model</label>
-            <input
-              id="or-model"
-              style="width:100%; margin-bottom:8px;"
-              type="text"
-              bind:value={model}
-              list="model-list"
-              placeholder="Start typing to search..."
-            />
+        <div style="grid-column: span 2;">
+          <label class="sub" for="or-model">Model</label>
+          <input
+            id="or-model"
+            style="width:100%; margin-bottom:8px; {!bypassProxy
+              ? 'opacity: 0.6; font-style: italic;'
+              : ''}"
+            type="text"
+            value={!bypassProxy && managedConfig?.defaultModel
+              ? managedConfig.defaultModel === "any"
+                ? "Dynamic Selection"
+                : managedConfig.defaultModel
+              : model}
+            on:input={(e) =>
+              bypassProxy && (model = (e.target as HTMLInputElement).value)}
+            list="model-list"
+            placeholder={!bypassProxy
+              ? "Managed by Admin"
+              : "Start typing to search..."}
+            disabled={!bypassProxy}
+          />
+          {#if bypassProxy}
             <datalist id="model-list">
               {#each availableModels as m}
                 <option value={m}>{m}</option>
               {/each}
             </datalist>
-          </div>
-          <div>
-            <label class="sub" for="or-max">Max tokens</label>
-            <input
-              id="or-max"
-              style="width:100%;"
-              type="text"
-              bind:value={maxTokens}
-            />
-          </div>
-          <div style="grid-column: span 2;">
-            <label class="sub" for="or-temp">Temperature: {temperature}</label>
-            <input
-              id="or-temp"
-              style="width:100%;"
-              type="range"
-              min="0"
-              max="2"
-              step="0.1"
-              bind:value={temperature}
-            />
-          </div>
-        {:else}
-          <div
-            style="grid-column: span 2; padding: 12px; background: rgba(0,229,255,0.05); border: 1px dashed var(--rsdh-accent); border-radius: 4px; text-align: center;"
+          {/if}
+        </div>
+        <div>
+          <label class="sub" for="or-max">Max tokens</label>
+          <input
+            id="or-max"
+            style="width:100%; {!bypassProxy ? 'opacity: 0.6;' : ''}"
+            type="text"
+            value={!bypassProxy && managedConfig?.maxTokens
+              ? String(managedConfig.maxTokens)
+              : maxTokens}
+            on:input={(e) =>
+              bypassProxy && (maxTokens = (e.target as HTMLInputElement).value)}
+            disabled={!bypassProxy}
+          />
+        </div>
+        <div style="grid-column: span 2;">
+          <label class="sub" for="or-temp"
+            >Temperature: {!bypassProxy &&
+            managedConfig?.temperature !== undefined
+              ? managedConfig.temperature
+              : temperature}</label
           >
-            <div
+          <input
+            id="or-temp"
+            style="width:100%; {!bypassProxy ? 'opacity: 0.6;' : ''}"
+            type="range"
+            min="0"
+            max="2"
+            step="0.1"
+            value={!bypassProxy && managedConfig?.temperature !== undefined
+              ? managedConfig.temperature
+              : temperature}
+            on:input={(e) =>
+              bypassProxy &&
+              (temperature = parseFloat((e.target as HTMLInputElement).value))}
+            disabled={!bypassProxy}
+          />
+        </div>
+        {#if !bypassProxy}
+          <div
+            style="grid-column: span 2; padding: 8px; background: rgba(0,229,255,0.03); border: 1px dashed rgba(0,229,255,0.2); border-radius: 4px; text-align: center; margin-top: 4px;"
+          >
+            <span
               class="sub"
-              style="color: var(--rsdh-accent); font-weight: 800;"
+              style="font-size: 9px; color: var(--rsdh-accent); opacity: 0.8;"
+              >✦ SETTINGS_LOADED_FROM_PROXY</span
             >
-              🤖 MANAGED_BY_ADMIN
-            </div>
-            <div class="sub" style="font-size: 9px; margin-top: 4px;">
-              AI Model & Sampling parameters are optimized centrally for this
-              session.
-            </div>
           </div>
         {/if}
       </div>

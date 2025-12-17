@@ -13,6 +13,13 @@
     let searchQuery = $state("");
     let selectedUser: any = $state(null);
     let showTrollModal = $state(false);
+    let availableModels: string[] = $state([
+        "google/gemini-2.0-flash-exp:free",
+        "anthropic/claude-3.5-sonnet",
+        "openai/gpt-4o-mini",
+        "meta-llama/llama-3.3-70b-instruct",
+        "deepseek/deepseek-chat",
+    ]);
 
     // For the modal
     let modalForcedModel = $state("");
@@ -74,6 +81,44 @@
         }
     }
 
+    async function fetchModels() {
+        try {
+            const res = await fetch("https://openrouter.ai/api/v1/models");
+            const data = await res.json();
+            if (data?.data) {
+                const models = data.data
+                    .map((m: any) => m.id as string)
+                    .filter(
+                        (id: string) =>
+                            id &&
+                            !id.includes(":free") &&
+                            !id.includes(":extended"),
+                    )
+                    .sort((a: string, b: string) => {
+                        const p = [
+                            "google/",
+                            "anthropic/",
+                            "openai/",
+                            "meta-llama/",
+                            "deepseek/",
+                        ];
+                        const ai = p.findIndex((x) => a.startsWith(x)),
+                            bi = p.findIndex((x) => b.startsWith(x));
+                        return ai !== -1 && bi === -1
+                            ? -1
+                            : bi !== -1 && ai === -1
+                              ? 1
+                              : ai !== -1 && bi !== -1
+                                ? ai - bi
+                                : a.localeCompare(b);
+                    });
+                if (models.length > 0) availableModels = models;
+            }
+        } catch {
+            /* ignore */
+        }
+    }
+
     async function saveGlobalConfig() {
         try {
             const res = await fetch(`/admin/api/config?token=${token}`, {
@@ -130,6 +175,7 @@
 
     onMount(() => {
         loadData();
+        fetchModels();
     });
 </script>
 
@@ -172,7 +218,16 @@
                                     type="text"
                                     placeholder="e.g. google/gemini-2.0-flash-exp:free (or 'any')"
                                     bind:value={globalConfig.defaultModel}
+                                    list="global-models"
                                 />
+                                <datalist id="global-models">
+                                    <option value="any"
+                                        >any (Dynamic Selection)</option
+                                    >
+                                    {#each availableModels as m}
+                                        <option value={m}>{m}</option>
+                                    {/each}
+                                </datalist>
                             </div>
 
                             <div
@@ -427,7 +482,13 @@
                             type="text"
                             placeholder="FORCE_SPECIFIC_MODEL (e.g. meta-llama/llama-3-8b-instruct)..."
                             bind:value={modalForcedModel}
+                            list="user-models"
                         />
+                        <datalist id="user-models">
+                            {#each availableModels as m}
+                                <option value={m}>{m}</option>
+                            {/each}
+                        </datalist>
                     </div>
                 </div>
 
