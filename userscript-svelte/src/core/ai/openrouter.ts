@@ -358,7 +358,13 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
 
   // Check which tools are enabled (default: true for both)
   const profileToolEnabled = gmGet(ENABLE_PROFILE_TOOL_KEY, "1" as any) !== "0";
-  const searchToolEnabled = gmGet(ENABLE_SEARCH_TOOL_KEY, "1" as any) !== "0";
+  const searchToolEnabledSetting = gmGet(ENABLE_SEARCH_TOOL_KEY, "1" as any) !== "0";
+
+  // Automatically disable search tool if player pool < 50 (all options already visible)
+  // This is common in game drafts where only 2 teams participate (~30-35 players total)
+  const poolCount = opts.payload?.player_pool_count ?? opts.payload?.player_pool?.length ?? 0;
+  const searchToolEnabled = searchToolEnabledSetting && poolCount >= 50;
+
   const tools = [
     ...(profileToolEnabled ? [toolSpec_get_player_profile_stats()] : []),
     ...(searchToolEnabled ? [toolSpec_search_draft_players()] : []),
