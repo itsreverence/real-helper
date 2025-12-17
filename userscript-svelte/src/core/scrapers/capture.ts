@@ -387,26 +387,52 @@ export function detectGameDraftEntries(): { isGameDraft: boolean; entriesRemaini
  * Live games: TODO - need sample HTML.
  */
 export function scrapeGameMatchupFromHeader(): GameMatchup | null {
-  // The game header is near the draft modal - look for the container with team info
-  // It has a distinctive structure: border-bottom, contains two tabbable team divs
+  // Words to exclude from team names (navigation, UI elements)
+  const excludeWords = new Set([
+    "games", "game", "nfl", "nba", "nhl", "mlb", "cfb", "cbb", "wnba", "fc",
+    "ufc", "golf", "final", "live", "upcoming", "finished", "draft", "update",
+    "submit", "cancel", "close", "settings", "home", "profile", "menu"
+  ]);
+
+  // The game header has team logo images - look for containers with images
+  // that also have team-like text nearby
   const headerCandidates = qsa<HTMLElement>("div").filter(el => {
-    const style = el.getAttribute("style") || "";
-    // Header has border-bottom and black background
-    if (!style.includes("border-bottom") && !style.includes("border-color")) return false;
+    // Must have team logo images (usually .webp)
+    const imgs = el.querySelectorAll("img");
+    if (imgs.length < 2) return false;
+
+    // Check if images look like team logos (small, from media.realapp.com)
+    const teamLogos = Array.from(imgs).filter(img => {
+      const src = img.getAttribute("src") || "";
+      const r = img.getBoundingClientRect();
+      return src.includes("media.realapp.com") && r.width >= 20 && r.width <= 80;
+    });
+    if (teamLogos.length < 2) return false;
 
     const t = (el.textContent || "").trim();
     // Must not have boost values (those are in the player pool)
     if (/\+\d+\.?\d*x/i.test(t)) return false;
-    // Should have at least 2 team-like names (letters only, 3-15 chars)
-    const possibleTeams = t.match(/\b[A-Z][a-z]{2,14}\b/g) || [];
-    if (possibleTeams.length < 2) return false;
 
-    return true;
+    // Should have records (like 15-12) which are a strong signal of game header
+    const hasRecords = /\b\d{1,2}-\d{1,2}\b/.test(t);
+
+    // Reasonable size for header
+    const r = el.getBoundingClientRect();
+    if (r.width < 200 || r.height < 40 || r.height > 200) return false;
+
+    return hasRecords;
   });
 
   if (headerCandidates.length === 0) return null;
 
-  // Take the first (topmost) candidate that looks like a header
+  // Sort by fewer children (to get the most specific container)
+  headerCandidates.sort((a, b) => {
+    const aChildren = a.querySelectorAll("*").length;
+    const bChildren = b.querySelectorAll("*").length;
+    return aChildren - bChildren;
+  });
+
+  // Take the smallest container that matches
   const header = headerCandidates[0];
   const textDivs = Array.from(header.querySelectorAll('div[dir="auto"]'));
 
@@ -434,7 +460,12 @@ export function scrapeGameMatchupFromHeader(): GameMatchup | null {
     const text = (div.textContent || "").trim();
     if (!text) continue;
 
-    if (text.toLowerCase() === "final") {
+    const lowerText = text.toLowerCase();
+
+    // Skip excluded words
+    if (excludeWords.has(lowerText)) continue;
+
+    if (lowerText === "final") {
       hasFinal = true;
     } else if (recordPattern.test(text)) {
       records.push(text);
@@ -445,12 +476,12 @@ export function scrapeGameMatchupFromHeader(): GameMatchup | null {
     } else if (spreadPattern.test(text)) {
       spread = text;
     } else if (text.length >= 3 && text.length <= 20 && /^[A-Za-z]+$/.test(text)) {
-      // Team name - letters only, reasonable length
+      // Team name - letters only, reasonable length, not in exclude list
       teams.push(text);
     }
   }
 
-  // Assign teams (first two found)
+  // Assign teams (first two found that aren't excluded)
   if (teams.length >= 2) {
     team1 = teams[0];
     team2 = teams[1];
@@ -480,8 +511,8 @@ export function scrapeGameMatchupFromHeader(): GameMatchup | null {
   }
   // TODO: Live game detection when we have a sample
 
-  // Only return if we found at least one team
-  if (!team1) return null;
+  // Only return if we found at least one valid team
+  if (!team1 || excludeWords.has(team1.toLowerCase())) return null;
 
   return {
     team1,
