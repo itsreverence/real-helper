@@ -1,5 +1,5 @@
 // Simple toast notification system for userscript
-// Toasts appear at the bottom of the viewport and auto-dismiss
+// Toasts appear at the bottom-left of the viewport and auto-dismiss
 
 let toastContainer: HTMLElement | null = null;
 
@@ -12,12 +12,12 @@ function ensureContainer(): HTMLElement {
   toastContainer.id = "rsdh-toast-container";
   toastContainer.style.cssText = `
     position: fixed;
-    bottom: 20px;
-    left: 20px;
+    bottom: 40px;
+    left: 40px;
     z-index: 2147483647;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
     align-items: flex-start;
     pointer-events: none;
   `;
@@ -31,40 +31,61 @@ export function showToast(message: string, type: ToastType = "info", durationMs 
   const container = ensureContainer();
 
   const toast = document.createElement("div");
+
+  // Broadcast Accent Colors
+  const colors = {
+    success: "#7CFF01", // RealSports Green
+    error: "#FF3D00",   // Broadcast Red
+    info: "#00E5FF"     // Electric Blue
+  };
+
+  const accent = colors[type];
+
   toast.style.cssText = `
     font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 12px 20px;
-    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 14px 20px;
+    border-radius: 2px;
     color: white;
+    background: #0D0D12;
+    border-left: 4px solid ${accent};
     pointer-events: auto;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    animation: toastIn 0.25s ease;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.8), 0 0 10px ${accent}20;
+    animation: broadcastToastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     max-width: 320px;
-    text-align: center;
-    ${type === "success"
-      ? "background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border: 1px solid rgba(34, 197, 94, 0.3);"
-      : type === "error"
-        ? "background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border: 1px solid rgba(239, 68, 68, 0.3);"
-        : "background: linear-gradient(135deg, #2c6cff 0%, #1d4ed8 100%); border: 1px solid rgba(44, 108, 255, 0.3);"}
+    position: relative;
+    overflow: hidden;
   `;
-  toast.textContent = message;
+
+  // Add a subtle scanline effect to the toast
+  const overlay = document.createElement("div");
+  overlay.style.cssText = `
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+  `;
+  toast.appendChild(overlay);
+
+  const textNode = document.createTextNode(message);
+  toast.appendChild(textNode);
 
   // Add animation keyframes if not already added
   if (!document.getElementById("rsdh-toast-styles")) {
     const style = document.createElement("style");
     style.id = "rsdh-toast-styles";
     style.textContent = `
-      @keyframes toastIn {
-        from { opacity: 0; transform: translateY(20px) scale(0.95); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
+      @keyframes broadcastToastIn {
+        from { opacity: 0; transform: translateX(-40px); }
+        to { opacity: 1; transform: translateX(0); }
       }
-      @keyframes toastOut {
-        from { opacity: 1; transform: translateY(0) scale(1); }
-        to { opacity: 0; transform: translateY(-10px) scale(0.95); }
+      @keyframes broadcastToastOut {
+        from { opacity: 1; transform: scale(1); }
+        to { opacity: 0; transform: scale(0.9) translateX(-20px); }
       }
     `;
     document.head.appendChild(style);
@@ -74,7 +95,7 @@ export function showToast(message: string, type: ToastType = "info", durationMs 
 
   // Auto dismiss
   setTimeout(() => {
-    toast.style.animation = "toastOut 0.2s ease forwards";
+    toast.style.animation = "broadcastToastOut 0.2s ease forwards";
     setTimeout(() => {
       toast.remove();
     }, 200);

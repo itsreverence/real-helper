@@ -406,42 +406,68 @@
 </script>
 
 <div class="panel">
+  <div class="texture-overlay"></div>
+
   <div class="header">
     <div class="title">
-      <span style="margin-right: 6px;">✦</span>
-      Draft Helper
+      <i>✦</i> BROADCAST COMMAND CENTER
     </div>
-    <button class="secondary" on:click={() => setUiState({ hidden: true })}>
-      <span style="font-size: 14px;">✕</span>
-    </button>
+    <div class="flex-row">
+      {#if isLoading}
+        <div class="spinner"></div>
+      {/if}
+      <button
+        class="secondary"
+        style="width: auto; padding: 6px 10px;"
+        on:click={() => setUiState({ hidden: true })}
+      >
+        EXIT
+      </button>
+    </div>
   </div>
 
-  <!-- Tab bar: 3 tabs normally, 4 when debug mode is on -->
-  <div
-    class="tabs"
-    style="grid-template-columns: {debugMode
-      ? '1fr 1fr 1fr 1fr'
-      : '1fr 1fr 1fr'};"
-  >
+  <!-- Live Ticker -->
+  <div class="ticker-container">
+    <div class="ticker-label">LIVE FEED</div>
+    <div class="ticker-content">
+      {#if lastPayloadRaw}
+        {@const p = JSON.parse(lastPayloadRaw)}
+        {#if p.player_pool}
+          {#each p.player_pool.slice(0, 10) as player}
+            <span>{player.name} ({player.boost_x ?? 0}x)</span>
+            <span class="text-accent">•</span>
+          {/each}
+        {/if}
+      {:else}
+        <span>WAITING FOR DRAFT DATA...</span>
+        <span class="text-accent">•</span>
+        <span>AI ANALYSIS READY...</span>
+        <span class="text-accent">•</span>
+      {/if}
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tabs">
     <button
-      class="tab secondary {tab === 'context' ? 'active' : ''}"
+      class="tab {tab === 'context' ? 'active' : ''}"
       on:click={() => setTab("context")}>Context</button
     >
     <button
-      class="tab secondary {tab === 'results' ? 'active' : ''}"
+      class="tab {tab === 'results' ? 'active' : ''}"
       on:click={() => setTab("results")}>Results</button
     >
     <button
-      class="tab secondary {tab === 'settings' ? 'active' : ''}"
+      class="tab {tab === 'settings' ? 'active' : ''}"
       on:click={() => setTab("settings")}>Settings</button
     >
     {#if debugMode}
       <button
-        class="tab secondary {tab === 'debug' ? 'active' : ''}"
+        class="tab {tab === 'debug' ? 'active' : ''}"
         on:click={() => setTab("debug")}
-        style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3);"
+        style="--rsdh-accent: #f59e0b;"
       >
-        🐛 Debug
+        Debug
       </button>
     {/if}
   </div>
@@ -457,13 +483,15 @@
       <div>{@html outputHtml}</div>
     {:else}
       <div class="empty-state">
-        <div class="empty-icon">📋</div>
-        <h3 class="empty-title">No Data Captured</h3>
+        <div class="empty-icon">📡</div>
+        <h3 class="empty-title">NO SIGNAL DETECTED</h3>
         <p class="empty-description">
-          Open a draft modal on the site, then use the Capture button to collect
-          player and contest data.
+          Awaiting input from RealSports draft modal. Capture to initiate
+          analysis.
         </p>
-        <div class="empty-hint">💡 Look for "Draft" or "Update" buttons</div>
+        <div class="empty-hint">
+          <span class="text-accent">READY TO RECEIVE</span>
+        </div>
       </div>
     {/if}
   </div>
@@ -479,14 +507,14 @@
       <div>{@html aiResultHtml}</div>
     {:else}
       <div class="empty-state">
-        <div class="empty-icon">✨</div>
-        <h3 class="empty-title">No AI Results Yet</h3>
+        <div class="empty-icon">🤖</div>
+        <h3 class="empty-title">AI CO-PILOT OFFLINE</h3>
         <p class="empty-description">
-          Capture a draft modal first, then use "Ask AI" from the modal to get
-          lineup recommendations.
+          Execute 'ASK AI' to generate real-time roster optimizations and fit
+          scores.
         </p>
         <div class="empty-hint">
-          🚀 AI will analyze your roster and suggest optimal picks
+          <span class="text-green">SYSTEMS READY</span>
         </div>
       </div>
     {/if}
@@ -497,7 +525,7 @@
     <!-- Account Linking Card -->
     <div class="card">
       <div class="h">
-        <span style="opacity: 0.6; margin-right: 6px;">👤</span>Account
+        <span>ACCOUNT IDENTITY</span>
       </div>
       {#if linkedUser}
         <div
@@ -566,7 +594,7 @@
 
     <div class="card">
       <div class="h">
-        <span style="opacity: 0.6; margin-right: 6px;">🔑</span>OpenRouter API
+        <span>API ENDPOINT CONFIG</span>
       </div>
       {#if !USE_PROXY}
         <div
@@ -748,13 +776,14 @@
   {#if debugMode}
     <div class="view {tab === 'debug' ? '' : 'hidden'}">
       <!-- Summary Header -->
-      <div class="card" style="border-left: 3px solid rgba(245, 158, 11, 0.6);">
+      <div class="card" style="border-left: 3px solid var(--rsdh-accent);">
         <div
           style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;"
         >
-          <span style="font-size: 18px;">📊</span>
-          <span style="font-weight: 600; color: rgba(255,255,255,0.95);"
-            >Request Summary</span
+          <span style="font-size: 18px;">📉</span>
+          <span
+            style="font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;"
+            >TELEMETRY SUMMARY</span
           >
         </div>
         {#if lastPayloadRaw}
