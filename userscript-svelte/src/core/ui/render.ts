@@ -46,6 +46,8 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
     `;
   }).join("");
 
+
+
   const poolRows = pool.map((p: any, i: number) => {
     const name = escapeHtml(p?.name || "");
     const st = p?.status ? `<span class="status-pill" style="background: rgba(255,255,255,0.05); color: var(--rsdh-text-dim); margin-left: 8px;">${escapeHtml(p.status)}</span>` : "";

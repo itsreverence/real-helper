@@ -1,6 +1,12 @@
 import { MAX_POOL_IN_PROMPT } from "../constants";
 import type { PayloadOk, Slot, PlayerPoolItem, GameInfo, GameMatchup } from "../types";
 
+// Fixed slot multipliers (slot 1 = 2.0x, slot 2 = 1.8x, etc.)
+// These are always the same in RealSports drafts.
+// Used to ensure AI gets correct slot values even when scraping filled drafts
+// (where the displayed value is combined slot + player boost).
+const FIXED_SLOT_MULTIPLIERS = [2.0, 1.8, 1.6, 1.4, 1.2];
+
 function baseContext(payload: PayloadOk) {
   let slots: Slot[] = Array.isArray(payload?.slots) ? (payload.slots as Slot[]) : [];
   if ((!slots || slots.length === 0) && Array.isArray(payload?.drafts) && payload.drafts.length > 0) {
@@ -9,9 +15,12 @@ function baseContext(payload: PayloadOk) {
   const slotLines = (slots || [])
     .map((s, idx) => {
       const sel = s.selection ? `selected="${s.selection}"` : "selected=<empty>";
-      return `- slot ${idx + 1}: multiplier=${s.multiplier}x, ${sel}`;
+      // Use fixed slot multiplier for AI, not the scraped value (which may include player boost)
+      const fixedMult = FIXED_SLOT_MULTIPLIERS[idx] ?? s.multiplier;
+      return `- slot ${idx + 1}: multiplier=${fixedMult}x, ${sel}`;
     })
     .join("\n");
+
 
   const pool: PlayerPoolItem[] = Array.isArray(payload?.player_pool) ? (payload.player_pool as PlayerPoolItem[]) : [];
   const poolSlice = pool.slice(0, MAX_POOL_IN_PROMPT);
