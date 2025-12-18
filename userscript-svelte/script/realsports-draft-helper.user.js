@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RealSports Draft Helper
 // @namespace    local.realsports.drafthelper
-// @version      0.91.22
+// @version      0.91.23
 // @description  RealSports Draft Helper (Svelte + TypeScript)
 // @homepageURL  https://github.com/itsreverence/real-helper
 // @supportURL   https://github.com/itsreverence/real-helper/issues
@@ -158,11 +158,11 @@ ${n}
     </div>
   `.trim()}function wo(e,t=[]){const r=Array.isArray(e?.lineup)?e.lineup:[],n=Array.isArray(e?.bets)?e.bets:[],a=Array.isArray(e?.assumptions)?e.assumptions:[],s=Array.isArray(e?.questions)?e.questions:[],i=r.map(c=>{const u=Ne(c?.slot_index),f=Ne(c?.player||""),v=Pa(c?.slot_multiplier),m=typeof c?.player_boost_x=="number"?`+${Ne(c.player_boost_x)}X`:"+0X",x=Pa(c?.effective_multiplier);return`
       <tr>
-        <td class="font-mono">${u}</td>
-        <td style="font-weight: 800;">${f}</td>
-        <td class="font-mono">${v}</td>
-        <td class="text-green font-mono">${m}</td>
-        <td><span class="text-accent font-mono" style="font-weight: 900;">${x}</span></td>
+        <td style="padding: 8px 12px;" class="font-mono">${u}</td>
+        <td style="padding: 8px 12px; font-weight: 800;">${f}</td>
+        <td style="padding: 8px 12px;" class="font-mono">${v}</td>
+        <td style="padding: 8px 12px;" class="text-green font-mono">${m}</td>
+        <td style="padding: 8px 12px;"><span class="text-accent font-mono" style="font-weight: 900;">${x}</span></td>
       </tr>
     `}).join(""),d=n.map(c=>{const u=Ne(c?.tier||""),f=c?.recommend?"OPTIMAL":"AVOID",v=c?.recommend?"":"text-red",m=c?.recommend?"var(--rsdh-accent-green)":"var(--rsdh-accent-red)",x=Math.min(100,Math.max(0,parseInt(c?.confidence)||0)),C=Ne(c?.reason||"");return`
       <div class="card" style="border-left-color: ${m}; padding: 12px 16px;">
@@ -193,14 +193,14 @@ ${n}
 
     <div class="card">
       <div class="h">OPTIMIZED LINEUP</div>
-      <table class="table">
+      <table class="table" style="width: 100%; border-collapse: collapse;">
         <thead>
           <tr>
-            <th>SLOT</th>
-            <th>PLAYER</th>
-            <th>MULT</th>
-            <th>BOOST</th>
-            <th>EFF.</th>
+            <th style="text-align: left; padding: 8px 12px;">SLOT</th>
+            <th style="text-align: left; padding: 8px 12px;">PLAYER</th>
+            <th style="text-align: left; padding: 8px 12px;">MULT</th>
+            <th style="text-align: left; padding: 8px 12px;">BOOST</th>
+            <th style="text-align: left; padding: 8px 12px;">EFF.</th>
           </tr>
         </thead>
         <tbody>

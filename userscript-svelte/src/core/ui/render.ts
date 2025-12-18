@@ -120,11 +120,11 @@ export function renderAiJsonHtml(obj: any, sources: string[] = []): string {
     const em = fmtX(s?.effective_multiplier);
     return `
       <tr>
-        <td class="font-mono">${idx}</td>
-        <td style="font-weight: 800;">${player}</td>
-        <td class="font-mono">${sm}</td>
-        <td class="text-green font-mono">${pb}</td>
-        <td><span class="text-accent font-mono" style="font-weight: 900;">${em}</span></td>
+        <td style="padding: 8px 12px;" class="font-mono">${idx}</td>
+        <td style="padding: 8px 12px; font-weight: 800;">${player}</td>
+        <td style="padding: 8px 12px;" class="font-mono">${sm}</td>
+        <td style="padding: 8px 12px;" class="text-green font-mono">${pb}</td>
+        <td style="padding: 8px 12px;"><span class="text-accent font-mono" style="font-weight: 900;">${em}</span></td>
       </tr>
     `;
   }).join("");
@@ -171,14 +171,14 @@ export function renderAiJsonHtml(obj: any, sources: string[] = []): string {
 
     <div class="card">
       <div class="h">OPTIMIZED LINEUP</div>
-      <table class="table">
+      <table class="table" style="width: 100%; border-collapse: collapse;">
         <thead>
           <tr>
-            <th>SLOT</th>
-            <th>PLAYER</th>
-            <th>MULT</th>
-            <th>BOOST</th>
-            <th>EFF.</th>
+            <th style="text-align: left; padding: 8px 12px;">SLOT</th>
+            <th style="text-align: left; padding: 8px 12px;">PLAYER</th>
+            <th style="text-align: left; padding: 8px 12px;">MULT</th>
+            <th style="text-align: left; padding: 8px 12px;">BOOST</th>
+            <th style="text-align: left; padding: 8px 12px;">EFF.</th>
           </tr>
         </thead>
         <tbody>
