@@ -33,7 +33,6 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
 
   const expectedSlots = (typeof payload?.expected_slots === "number" && payload.expected_slots > 0) ? payload.expected_slots : slots.length;
   const sport = payload?.sport || "—";
-  const mode = payload?.mode || "—";
   const pool = Array.isArray(payload?.player_pool) ? payload.player_pool : [];
 
   const slotRows = (slots || []).map((s: any, i: number) => {
@@ -57,7 +56,7 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
         <div class="player-rank">#${i + 1}</div>
         <div class="player-info">
           <div class="player-name">${name}${st}</div>
-          <div class="player-meta">${p.team || sport} • ${p.position || mode}</div>
+          <div class="player-meta">${p.team || sport} • ${p.position || "—"}</div>
         </div>
         <div class="player-stats">
           ${bx}
@@ -75,7 +74,6 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
       <div class="sub">
         ${draftTypeLabel ? `<span class="text-accent">TYPE:</span> ${escapeHtml(draftTypeLabel)} &nbsp;•&nbsp; ` : ""}
         <span class="text-accent">SPORT:</span> ${escapeHtml(sport)} &nbsp;•&nbsp; 
-        <span class="text-accent">MODE:</span> ${escapeHtml(mode)} &nbsp;•&nbsp; 
         <span class="text-accent">SLOTS:</span> ${escapeHtml(expectedSlots)}
       </div>
     </div>
