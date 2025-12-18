@@ -77,8 +77,7 @@
   let webMaxResults = OR_DEFAULT_WEB_MAX_RESULTS;
   let structured = true;
   let healing = true;
-  let forceToolCall = false;
-  let forceSearchTool = false; // Debug: force AI to call search tool
+  let forceToolChoice = "none"; // none | profile | search
   let bypassProxy = false; // Debug mode: bypass proxy and use direct API
   let enableProfileTool = true; // Enable AI to look up player profiles
   let enableWebSearch = true; // Enable AI to search the web
@@ -170,12 +169,18 @@
     healing =
       String(gmGet(OR_HEAL, true as any)) === "1" ||
       gmGet(OR_HEAL, true as any) === true;
-    forceToolCall =
+    // Load force tool choice from the old keys for backwards compatibility
+    const forceProfile =
       String(gmGet(FORCE_TOOL_CALL_KEY, "0" as any)) === "1" ||
       gmGet(FORCE_TOOL_CALL_KEY, "0" as any) === true;
-    forceSearchTool =
+    const forceSearch =
       String(gmGet(FORCE_SEARCH_TOOL_KEY, "0" as any)) === "1" ||
       gmGet(FORCE_SEARCH_TOOL_KEY, "0" as any) === true;
+    forceToolChoice = forceProfile
+      ? "profile"
+      : forceSearch
+        ? "search"
+        : "none";
     bypassProxy =
       String(gmGet(BYPASS_PROXY_KEY, "0" as any)) === "1" ||
       gmGet(BYPASS_PROXY_KEY, "0" as any) === true;
@@ -410,8 +415,8 @@
     gmSet(OR_WEB_MAX_RESULTS, String(webMaxResults));
     gmSet(OR_STRUCTURED, structured ? "1" : "0");
     gmSet(OR_HEAL, healing ? "1" : "0");
-    gmSet(FORCE_TOOL_CALL_KEY, forceToolCall ? "1" : "0");
-    gmSet(FORCE_SEARCH_TOOL_KEY, forceSearchTool ? "1" : "0");
+    gmSet(FORCE_TOOL_CALL_KEY, forceToolChoice === "profile" ? "1" : "0");
+    gmSet(FORCE_SEARCH_TOOL_KEY, forceToolChoice === "search" ? "1" : "0");
     gmSet(BYPASS_PROXY_KEY, bypassProxy ? "1" : "0");
     gmSet(ENABLE_PROFILE_TOOL_KEY, enableProfileTool ? "1" : "0");
     gmSet(ENABLE_WEB_SEARCH_KEY, enableWebSearch ? "1" : "0");
@@ -1494,25 +1499,37 @@
         <div class="h" style="margin-bottom: 8px; font-size: 12px;">
           🔧 Dev Options
         </div>
-        <label
-          style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer;"
-        >
-          <input type="checkbox" bind:checked={forceToolCall} />
-          <span
-            ><strong>Force Profile Tool</strong>
-            <span class="sub">— Makes AI call get_player_profile_stats</span
-            ></span
+        <div style="margin-bottom: 8px;">
+          <label class="sub" for="force-tool">Force Tool Call</label>
+          <select
+            id="force-tool"
+            style="width:100%; margin-top: 4px; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 13px;"
+            bind:value={forceToolChoice}
+            on:change={() => {
+              gmSet(
+                FORCE_TOOL_CALL_KEY,
+                forceToolChoice === "profile" ? "1" : "0",
+              );
+              gmSet(
+                FORCE_SEARCH_TOOL_KEY,
+                forceToolChoice === "search" ? "1" : "0",
+              );
+            }}
           >
-        </label>
-        <label
-          style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-top: 8px;"
-        >
-          <input type="checkbox" bind:checked={forceSearchTool} />
-          <span
-            ><strong>Force Search Tool</strong>
-            <span class="sub">— Makes AI call search_draft_players</span></span
-          >
-        </label>
+            <option value="none">None (AI decides)</option>
+            <option value="profile">🔍 Player Profile Lookup</option>
+            <option value="search">🔎 Draft Player Search</option>
+          </select>
+          <div class="sub" style="margin-top: 4px;">
+            {#if forceToolChoice === "profile"}
+              Forces AI to call get_player_profile_stats
+            {:else if forceToolChoice === "search"}
+              Forces AI to call search_draft_players
+            {:else}
+              AI will decide which tools to use based on context
+            {/if}
+          </div>
+        </div>
       </div>
 
       <!-- Raw Data (Collapsed) -->
