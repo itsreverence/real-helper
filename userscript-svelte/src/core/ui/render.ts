@@ -136,7 +136,7 @@ export function renderAiJsonHtml(obj: any, sources: string[] = []): string {
     const rec = b?.recommend ? "OPTIMAL" : "AVOID";
     const recClass = b?.recommend ? "" : "text-red";
     const color = b?.recommend ? "var(--rsdh-accent-green)" : "var(--rsdh-accent-red)";
-    const conf = Math.min(100, Math.max(0, parseInt(b?.confidence) || 0));
+    const conf = Math.min(100, Math.max(0, Number(b?.confidence) || 0));
     const reason = escapeHtml(b?.reason || "");
 
     return `

@@ -108,7 +108,7 @@ export function lineupJsonSchema() {
           properties: {
             tier: { type: "string", enum: ["top50", "top20", "top10"] },
             recommend: { type: "boolean" },
-            confidence: { type: "string", enum: ["low", "medium", "high"] },
+            confidence: { type: "number", minimum: 0, maximum: 100 },
             reason: { type: "string" },
           },
           required: ["tier", "recommend", "confidence", "reason"],
