@@ -39,9 +39,9 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
     const mult = fmtX(s?.multiplier);
     return `
       <tr>
-        <td><span class="font-mono">${i + 1}</span></td>
-        <td><span class="text-accent font-mono">${mult}</span></td>
-        <td style="font-weight: 700;">${sel}</td>
+        <td style="padding: 8px 12px;"><span class="font-mono">${i + 1}</span></td>
+        <td style="padding: 8px 12px;"><span class="text-accent font-mono">${mult}</span></td>
+        <td style="padding: 8px 12px; font-weight: 700;">${sel}</td>
       </tr>
     `;
   }).join("");
@@ -79,12 +79,12 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
     
     <div class="card">
       <div class="h">ROSTER CONFIGURATION</div>
-      <table class="table">
+      <table class="table" style="width: 100%; border-collapse: collapse;">
         <thead>
           <tr>
-            <th>SLOT</th>
-            <th>MULTIPLIER</th>
-            <th>SELECTION</th>
+            <th style="text-align: left; padding: 8px 12px;">SLOT</th>
+            <th style="text-align: left; padding: 8px 12px;">MULTIPLIER</th>
+            <th style="text-align: left; padding: 8px 12px;">SELECTION</th>
           </tr>
         </thead>
         <tbody>
@@ -92,6 +92,7 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
         </tbody>
       </table>
     </div>
+
 
     <div class="card" style="border-left-color: var(--rsdh-accent-green);">
       <div class="h">

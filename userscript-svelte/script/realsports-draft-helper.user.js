@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RealSports Draft Helper
 // @namespace    local.realsports.drafthelper
-// @version      0.91.21
+// @version      0.91.22
 // @description  RealSports Draft Helper (Svelte + TypeScript)
 // @homepageURL  https://github.com/itsreverence/real-helper
 // @supportURL   https://github.com/itsreverence/real-helper/issues
@@ -105,9 +105,9 @@ ${n}
       </div>
     `;let t=Array.isArray(e?.slots)?e.slots:[];(!t||t.length===0)&&Array.isArray(e?.drafts)&&e.drafts.length>0&&(t=e.drafts[0].slots||[]),typeof e?.expected_slots=="number"&&e.expected_slots>0?e.expected_slots:t.length;const r=e?.sport||"—",n=Array.isArray(e?.player_pool)?e.player_pool:[],a=(t||[]).map((l,c)=>{const u=l?.selection?Ne(l.selection):"<span style='opacity: 0.3;'>EMPTY_SLOT</span>",f=Pa(l?.multiplier);return`
       <tr>
-        <td><span class="font-mono">${c+1}</span></td>
-        <td><span class="text-accent font-mono">${f}</span></td>
-        <td style="font-weight: 700;">${u}</td>
+        <td style="padding: 8px 12px;"><span class="font-mono">${c+1}</span></td>
+        <td style="padding: 8px 12px;"><span class="text-accent font-mono">${f}</span></td>
+        <td style="padding: 8px 12px; font-weight: 700;">${u}</td>
       </tr>
     `}).join(""),s=n.map((l,c)=>{const u=Ne(l?.name||""),f=l?.status?`<span class="status-pill" style="background: rgba(255,255,255,0.05); color: var(--rsdh-text-dim); margin-left: 8px;">${Ne(l.status)}</span>`:"",v=typeof l?.boost_x=="number"&&l.boost_x!==0?`<span class="text-green font-mono">+${l.boost_x.toFixed(1)}X</span>`:"";return`
       <div class="player-row">
@@ -132,12 +132,12 @@ ${n}
     
     <div class="card">
       <div class="h">ROSTER CONFIGURATION</div>
-      <table class="table">
+      <table class="table" style="width: 100%; border-collapse: collapse;">
         <thead>
           <tr>
-            <th>SLOT</th>
-            <th>MULTIPLIER</th>
-            <th>SELECTION</th>
+            <th style="text-align: left; padding: 8px 12px;">SLOT</th>
+            <th style="text-align: left; padding: 8px 12px;">MULTIPLIER</th>
+            <th style="text-align: left; padding: 8px 12px;">SELECTION</th>
           </tr>
         </thead>
         <tbody>
@@ -145,6 +145,7 @@ ${n}
         </tbody>
       </table>
     </div>
+
 
     <div class="card" style="border-left-color: var(--rsdh-accent-green);">
       <div class="h">
