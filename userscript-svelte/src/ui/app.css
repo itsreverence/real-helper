@@ -146,23 +146,26 @@
   position: relative;
 }
 
-.ticker-content {
+.ticker-wrapper {
   flex: 1;
   overflow: hidden;
-  display: flex;
-  gap: 20px;
-  padding-left: 20px;
-  white-space: nowrap;
-  animation: tickerScroll 20s linear infinite;
+  position: relative;
 }
 
+.ticker-content {
+  display: inline-flex;
+  gap: 12px;
+  padding-left: 20px;
+  white-space: nowrap;
+  animation: tickerScroll 25s linear infinite;
+}
 
 @keyframes tickerScroll {
-  from {
+  0% {
     transform: translateX(0);
   }
 
-  to {
+  100% {
     transform: translateX(-50%);
   }
 }

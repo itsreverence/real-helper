@@ -456,25 +456,31 @@
   <!-- Live Ticker -->
   <div class="ticker-container">
     <div class="ticker-label">LIVE FEED</div>
-    <div class="ticker-content">
-      {#if lastPayloadRaw}
-        {@const p = JSON.parse(lastPayloadRaw)}
-        {#if p.player_pool}
-          {#each p.player_pool as player}
-            <span>{player.name} ({player.boost_x ?? 0}x)</span>
-            <span class="text-accent">•</span>
-          {/each}
-          {#each p.player_pool as player}
-            <span>{player.name} ({player.boost_x ?? 0}x)</span>
-            <span class="text-accent">•</span>
-          {/each}
+    <div class="ticker-wrapper">
+      <div class="ticker-content">
+        {#if lastPayloadRaw}
+          {@const p = JSON.parse(lastPayloadRaw)}
+          {#if p.player_pool}
+            {#each p.player_pool as player}
+              <span>{player.name} ({player.boost_x ?? 0}x)</span>
+              <span class="text-accent">•</span>
+            {/each}
+            {#each p.player_pool as player}
+              <span>{player.name} ({player.boost_x ?? 0}x)</span>
+              <span class="text-accent">•</span>
+            {/each}
+          {/if}
+        {:else}
+          <span>WAITING FOR DRAFT DATA...</span>
+          <span class="text-accent">•</span>
+          <span>AI ANALYSIS READY...</span>
+          <span class="text-accent">•</span>
+          <span>WAITING FOR DRAFT DATA...</span>
+          <span class="text-accent">•</span>
+          <span>AI ANALYSIS READY...</span>
+          <span class="text-accent">•</span>
         {/if}
-      {:else}
-        <span>WAITING FOR DRAFT DATA...</span>
-        <span class="text-accent">•</span>
-        <span>AI ANALYSIS READY...</span>
-        <span class="text-accent">•</span>
-      {/if}
+      </div>
     </div>
   </div>
 
