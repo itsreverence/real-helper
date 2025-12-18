@@ -12,8 +12,7 @@ function escapeHtml(s: unknown) {
 function fmtX(n: unknown) {
   const v = typeof n === "number" && !Number.isNaN(n) ? n : null;
   if (v == null) return "—";
-  const s = (Math.round(v * 100) / 100).toString();
-  return `${s}X`;
+  return `${v.toFixed(1)}X`;
 }
 
 export function renderPayloadHtml(payload: PayloadOk | any): string {
@@ -50,7 +49,7 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
   const poolRows = pool.map((p: any, i: number) => {
     const name = escapeHtml(p?.name || "");
     const st = p?.status ? `<span class="status-pill" style="background: rgba(255,255,255,0.05); color: var(--rsdh-text-dim); margin-left: 8px;">${escapeHtml(p.status)}</span>` : "";
-    const bx = (typeof p?.boost_x === "number") ? `<span class="text-green font-mono">+${escapeHtml(p.boost_x)}X</span>` : "";
+    const bx = (typeof p?.boost_x === "number") ? `<span class="text-green font-mono">+${p.boost_x.toFixed(1)}X</span>` : "";
     return `
       <div class="player-row">
         <div class="player-rank">#${i + 1}</div>
@@ -84,7 +83,7 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
         <thead>
           <tr>
             <th>SLOT</th>
-            <th>MULT</th>
+            <th>MULTIPLIER</th>
             <th>SELECTION</th>
           </tr>
         </thead>
