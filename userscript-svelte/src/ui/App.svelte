@@ -464,11 +464,17 @@
         {#if p.player_pool}
           <div class="ticker-content" style="animation-duration: {duration}s;">
             {#each p.player_pool as player}
-              <span>{player.name} ({(player.boost_x ?? 0).toFixed(1)}x)</span>
+              <span
+                >{player.name}{#if player.boost_x}
+                  ({player.boost_x.toFixed(1)}x){/if}</span
+              >
               <span class="text-accent">•</span>
             {/each}
             {#each p.player_pool as player}
-              <span>{player.name} ({(player.boost_x ?? 0).toFixed(1)}x)</span>
+              <span
+                >{player.name}{#if player.boost_x}
+                  ({player.boost_x.toFixed(1)}x){/if}</span
+              >
               <span class="text-accent">•</span>
             {/each}
           </div>
