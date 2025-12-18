@@ -1,7 +1,7 @@
 {
   "name": "realsports-draft-helper-userscript-ui",
   "private": true,
-  "version": "0.91.36",
+  "version": "0.91.37",
   "type": "module",
   "scripts": {
     "dev": "vite",

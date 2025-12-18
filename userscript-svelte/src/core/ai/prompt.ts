@@ -185,7 +185,7 @@ export function buildChatPromptFromPayload(payload: PayloadOk): string {
 export function buildStructuredPromptFromPayload(payload: PayloadOk, opts?: { webHint?: boolean; toolHint?: boolean; searchHint?: boolean; strategy?: "safe" | "balanced" | "risky" }): string {
   const { context } = baseContext(payload);
   const webHint = opts?.webHint
-    ? "Web search is available for verifying time-sensitive info like injury status, starters, scratches, minutes restrictions, and recent news."
+    ? "Web search is available for: player props/betting lines (over/unders), etc."
     : null;
   const toolHint = opts?.toolHint
     ? [
