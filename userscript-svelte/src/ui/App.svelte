@@ -815,57 +815,6 @@
         >
       </label>
 
-      <!-- Force Tool Call -->
-      <label
-        style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-top: 12px;"
-      >
-        <input
-          type="checkbox"
-          checked={forceToolChoice !== "none"}
-          on:change={(e) => {
-            if ((e.target as HTMLInputElement).checked) {
-              forceToolChoice = "profile";
-            } else {
-              forceToolChoice = "none";
-            }
-            gmSet(
-              FORCE_TOOL_CALL_KEY,
-              forceToolChoice === "profile" ? "1" : "0",
-            );
-            gmSet(
-              FORCE_SEARCH_TOOL_KEY,
-              forceToolChoice === "search" ? "1" : "0",
-            );
-          }}
-        />
-        <span
-          ><strong>Force Tool Call</strong><br /><span class="sub"
-            >Make AI always use a specific tool before analyzing</span
-          ></span
-        >
-      </label>
-      {#if forceToolChoice !== "none"}
-        <div style="margin-top: 8px; margin-left: 28px;">
-          <select
-            style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 13px;"
-            bind:value={forceToolChoice}
-            on:change={() => {
-              gmSet(
-                FORCE_TOOL_CALL_KEY,
-                forceToolChoice === "profile" ? "1" : "0",
-              );
-              gmSet(
-                FORCE_SEARCH_TOOL_KEY,
-                forceToolChoice === "search" ? "1" : "0",
-              );
-            }}
-          >
-            <option value="profile">🔍 Player Profile Lookup</option>
-            <option value="search">🔎 Draft Player Search</option>
-          </select>
-        </div>
-      {/if}
-
       <!-- Lineup Strategy Dropdown -->
       <div style="margin-top: 16px;">
         <label class="sub" for="lineup-strategy">Lineup Strategy</label>
@@ -930,6 +879,56 @@
               ></span
             >
           </label>
+          <!-- Force Tool Call -->
+          <label
+            style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-top: 12px;"
+          >
+            <input
+              type="checkbox"
+              checked={forceToolChoice !== "none"}
+              on:change={(e) => {
+                if ((e.target as HTMLInputElement).checked) {
+                  forceToolChoice = "profile";
+                } else {
+                  forceToolChoice = "none";
+                }
+                gmSet(
+                  FORCE_TOOL_CALL_KEY,
+                  forceToolChoice === "profile" ? "1" : "0",
+                );
+                gmSet(
+                  FORCE_SEARCH_TOOL_KEY,
+                  forceToolChoice === "search" ? "1" : "0",
+                );
+              }}
+            />
+            <span
+              ><strong>Force Tool Call</strong><br /><span class="sub"
+                >Make AI always use a specific tool before analyzing</span
+              ></span
+            >
+          </label>
+          {#if forceToolChoice !== "none"}
+            <div style="margin-top: 8px; margin-left: 28px;">
+              <select
+                style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 13px;"
+                bind:value={forceToolChoice}
+                on:change={() => {
+                  gmSet(
+                    FORCE_TOOL_CALL_KEY,
+                    forceToolChoice === "profile" ? "1" : "0",
+                  );
+                  gmSet(
+                    FORCE_SEARCH_TOOL_KEY,
+                    forceToolChoice === "search" ? "1" : "0",
+                  );
+                }}
+              >
+                <option value="profile">🔍 Player Profile Lookup</option>
+                <option value="search">🔎 Draft Player Search</option>
+              </select>
+            </div>
+          {/if}
         </div>
       </details>
     </div>
