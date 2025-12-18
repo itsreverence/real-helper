@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RealSports Draft Helper
 // @namespace    local.realsports.drafthelper
-// @version      0.91.17
+// @version      0.91.18
 // @description  RealSports Draft Helper (Svelte + TypeScript)
 // @homepageURL  https://github.com/itsreverence/real-helper
 // @supportURL   https://github.com/itsreverence/real-helper/issues
@@ -120,7 +120,7 @@ ${n}
           ${v}
         </div>
       </div>
-    `}).join(""),i=e?.draft_type||"",d=i==="game"?"🎯 Game":i==="league"?"🏆 League":"";return`
+    `}).join(""),i=e?.draft_type||"",d=i==="game"?"Game":i==="league"?"League":"";return`
     <div class="card">
       <div class="h">DRAFT INFO</div>
       <div class="sub">

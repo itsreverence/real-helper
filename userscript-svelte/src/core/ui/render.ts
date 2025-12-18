@@ -65,7 +65,7 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
   }).join("");
 
   const draftType = payload?.draft_type || "";
-  const draftTypeLabel = draftType === "game" ? "🎯 Game" : draftType === "league" ? "🏆 League" : "";
+  const draftTypeLabel = draftType === "game" ? "Game" : draftType === "league" ? "League" : "";
 
   return `
     <div class="card">
