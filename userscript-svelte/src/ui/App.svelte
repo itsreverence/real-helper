@@ -460,7 +460,11 @@
       {#if lastPayloadRaw}
         {@const p = JSON.parse(lastPayloadRaw)}
         {#if p.player_pool}
-          {#each p.player_pool.slice(0, 10) as player}
+          {#each p.player_pool as player}
+            <span>{player.name} ({player.boost_x ?? 0}x)</span>
+            <span class="text-accent">•</span>
+          {/each}
+          {#each p.player_pool as player}
             <span>{player.name} ({player.boost_x ?? 0}x)</span>
             <span class="text-accent">•</span>
           {/each}

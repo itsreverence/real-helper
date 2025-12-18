@@ -153,7 +153,7 @@
   gap: 20px;
   padding-left: 20px;
   white-space: nowrap;
-  animation: tickerScroll 30s linear infinite;
+  animation: tickerScroll 20s linear infinite;
 }
 
 
