@@ -256,6 +256,7 @@
                                     >
                                         <input
                                             type="number"
+                                            min="1"
                                             bind:value={globalConfig.maxTokens}
                                             style="width: 100%;"
                                         />
