@@ -48,7 +48,7 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
     `;
   }).join("");
 
-  const poolRows = pool.slice(0, 40).map((p: any, i: number) => {
+  const poolRows = pool.map((p: any, i: number) => {
     const name = escapeHtml(p?.name || "");
     const st = p?.status ? `<span class="status-pill" style="background: rgba(255,255,255,0.05); color: var(--rsdh-text-dim); margin-left: 8px;">${escapeHtml(p.status)}</span>` : "";
     const bx = (typeof p?.boost_x === "number") ? `<span class="text-green font-mono">+${escapeHtml(p.boost_x)}X</span>` : "";
@@ -66,10 +66,14 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
     `;
   }).join("");
 
+  const draftType = payload?.draft_type || "";
+  const draftTypeLabel = draftType === "game" ? "🎯 Game" : draftType === "league" ? "🏆 League" : "";
+
   return `
     <div class="card">
-      <div class="h">TRANSMISSION DATA</div>
+      <div class="h">DRAFT INFO</div>
       <div class="sub">
+        ${draftTypeLabel ? `<span class="text-accent">TYPE:</span> ${escapeHtml(draftTypeLabel)} &nbsp;•&nbsp; ` : ""}
         <span class="text-accent">SPORT:</span> ${escapeHtml(sport)} &nbsp;•&nbsp; 
         <span class="text-accent">MODE:</span> ${escapeHtml(mode)} &nbsp;•&nbsp; 
         <span class="text-accent">SLOTS:</span> ${escapeHtml(expectedSlots)}
@@ -94,13 +98,12 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
 
     <div class="card" style="border-left-color: var(--rsdh-accent-green);">
       <div class="h">
-        <span>AVAILABLE ASSETS</span>
+        <span>PLAYERS</span>
         <span class="status-pill text-green status-pulsing">LIVE_POOL</span>
       </div>
       <div class="list">
         ${poolRows || "<div style='text-align:center; padding: 24px; opacity: 0.3;'>POOL DATA UNAVAILABLE</div>"}
       </div>
-      ${pool.length > 40 ? `<div class="sub" style="margin-top: 12px; text-align: center;">+ ${pool.length - 40} MORE ASSETS IN POOL</div>` : ""}
     </div>
   `.trim();
 }
