@@ -457,10 +457,12 @@
   <div class="ticker-container">
     <div class="ticker-label">LIVE FEED</div>
     <div class="ticker-wrapper">
-      <div class="ticker-content">
-        {#if lastPayloadRaw}
-          {@const p = JSON.parse(lastPayloadRaw)}
-          {#if p.player_pool}
+      {#if lastPayloadRaw}
+        {@const p = JSON.parse(lastPayloadRaw)}
+        {@const playerCount = p.player_pool?.length || 4}
+        {@const duration = Math.max(20, playerCount * 1.5)}
+        {#if p.player_pool}
+          <div class="ticker-content" style="animation-duration: {duration}s;">
             {#each p.player_pool as player}
               <span>{player.name} ({player.boost_x ?? 0}x)</span>
               <span class="text-accent">•</span>
@@ -469,18 +471,20 @@
               <span>{player.name} ({player.boost_x ?? 0}x)</span>
               <span class="text-accent">•</span>
             {/each}
-          {/if}
-        {:else}
-          <span>WAITING FOR DRAFT DATA...</span>
-          <span class="text-accent">•</span>
-          <span>AI ANALYSIS READY...</span>
-          <span class="text-accent">•</span>
-          <span>WAITING FOR DRAFT DATA...</span>
-          <span class="text-accent">•</span>
-          <span>AI ANALYSIS READY...</span>
-          <span class="text-accent">•</span>
+          </div>
         {/if}
-      </div>
+      {:else}
+        <div class="ticker-content" style="animation-duration: 15s;">
+          <span>WAITING FOR DRAFT DATA...</span>
+          <span class="text-accent">•</span>
+          <span>AI ANALYSIS READY...</span>
+          <span class="text-accent">•</span>
+          <span>WAITING FOR DRAFT DATA...</span>
+          <span class="text-accent">•</span>
+          <span>AI ANALYSIS READY...</span>
+          <span class="text-accent">•</span>
+        </div>
+      {/if}
     </div>
   </div>
 
