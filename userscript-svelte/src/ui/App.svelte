@@ -909,7 +909,7 @@
             >
           </label>
           {#if forceToolChoice !== "none"}
-            <div style="margin-top: 8px; margin-left: 28px;">
+            <div style="margin-top: 8px;">
               <select
                 style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 13px;"
                 bind:value={forceToolChoice}
