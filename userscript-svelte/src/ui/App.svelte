@@ -90,6 +90,8 @@
     defaultModel?: string;
     temperature?: number;
     maxTokens?: number;
+    enableWebSearch?: boolean;
+    webMaxResults?: number;
   } | null = null;
 
   // User identity for profile linking
@@ -714,18 +716,38 @@
         {/if}
       </div>
       <label
-        style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-top: 12px;"
+        style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-top: 12px; {!bypassProxy
+          ? 'opacity: 0.6;'
+          : ''}"
       >
-        <input type="checkbox" bind:checked={enableWebSearch} />
+        <input
+          type="checkbox"
+          checked={!bypassProxy && managedConfig?.enableWebSearch !== undefined
+            ? managedConfig.enableWebSearch
+            : enableWebSearch}
+          on:change={(e) =>
+            bypassProxy &&
+            (enableWebSearch = (e.target as HTMLInputElement).checked)}
+          disabled={!bypassProxy}
+        />
         <span
           ><strong>Web Search</strong><br /><span class="sub"
             >Search the web for current player news and updates</span
           ></span
         >
       </label>
-      {#if enableWebSearch}
-        <div style="margin-top:8px; margin-left: 28px;">
-          <label class="sub" for="or-web">Max results: {webMaxResults}</label>
+      {#if !bypassProxy && managedConfig?.enableWebSearch !== undefined ? managedConfig.enableWebSearch : enableWebSearch}
+        <div
+          style="margin-top:8px; margin-left: 28px; {!bypassProxy
+            ? 'opacity: 0.6;'
+            : ''}"
+        >
+          <label class="sub" for="or-web"
+            >Max results: {!bypassProxy &&
+            managedConfig?.webMaxResults !== undefined
+              ? managedConfig.webMaxResults
+              : webMaxResults}</label
+          >
           <input
             id="or-web"
             style="width:100%;"
@@ -733,10 +755,20 @@
             min="1"
             max="5"
             step="1"
-            bind:value={webMaxResults}
+            value={!bypassProxy && managedConfig?.webMaxResults !== undefined
+              ? managedConfig.webMaxResults
+              : webMaxResults}
+            on:input={(e) =>
+              bypassProxy &&
+              (webMaxResults = parseInt(
+                (e.target as HTMLInputElement).value,
+                10,
+              ))}
+            disabled={!bypassProxy}
           />
         </div>
       {/if}
+
       <label
         style="display:flex; align-items:center; gap:10px; font-size:12px; color: rgba(255,255,255,0.90); user-select:none; cursor:pointer; margin-top: 12px;"
       >

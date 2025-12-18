@@ -7,6 +7,8 @@
         defaultModel: "any",
         temperature: 1.0,
         maxTokens: 4096,
+        enableWebSearch: true,
+        webMaxResults: 2,
     });
     let loading = $state(true);
     let error = $state("");
@@ -203,13 +205,13 @@
         {:else}
             <div class="grid top-grid">
                 <div class="card stat-card">
-                    <div class="h">GLOBAL_LOGISTICS</div>
+                    <div class="h">GLOBAL_STRATEGY</div>
                     <div class="list diag-list">
                         <div
                             class="diag-row"
                             style="flex-direction: column; align-items: flex-start; gap: 8px; border-bottom: none;"
                         >
-                            <span class="diag-label">ENFORCED_MODEL</span>
+                            <span class="diag-label">OPTIMIZED_MODEL</span>
                             <div
                                 class="search-wrap"
                                 style="max-width: none; width: 100%;"
@@ -261,11 +263,52 @@
                                 </div>
                             </div>
 
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 8px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.05);"
+                            >
+                                <span class="diag-label">WEB_SEARCH</span>
+                                <label
+                                    style="display: flex; align-items: center; gap: 8px; cursor: pointer;"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            globalConfig.enableWebSearch
+                                        }
+                                        style="cursor: pointer;"
+                                    />
+                                    <span style="font-size: 10px; opacity: 0.7;"
+                                        >{globalConfig.enableWebSearch
+                                            ? "ENABLED"
+                                            : "DISABLED"}</span
+                                    >
+                                </label>
+                            </div>
+                            {#if globalConfig.enableWebSearch}
+                                <div style="width: 100%;">
+                                    <span class="diag-label">SEARCH_DEPTH</span>
+                                    <div
+                                        class="search-wrap"
+                                        style="padding: 4px 12px;"
+                                    >
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="10"
+                                            bind:value={
+                                                globalConfig.webMaxResults
+                                            }
+                                            style="width: 100%;"
+                                        />
+                                    </div>
+                                </div>
+                            {/if}
+
                             <button
                                 class="secondary"
-                                style="width: 100%; margin-top: 8px;"
+                                style="width: 100%; margin-top: 12px;"
                                 onclick={saveGlobalConfig}
-                                >COMMIT_RESTRICTION</button
+                                >APPLY_CONFIGURATION</button
                             >
                         </div>
                     </div>
