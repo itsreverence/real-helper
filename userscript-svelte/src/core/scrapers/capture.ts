@@ -581,6 +581,10 @@ function sliceAfterFirstStop(text: string, stopPhrases: string[] = []) {
   return nl === -1 ? "" : text.slice(nl + 1);
 }
 
+// Fixed slot multipliers (slot 1 = 2.0x, slot 2 = 1.8x, etc.)
+// These are always the same in RealSports drafts.
+const FIXED_SLOT_MULTIPLIERS = [2.0, 1.8, 1.6, 1.4, 1.2];
+
 export function parseSlotsFromText(text: string, stopPhrases: string[] = [], maxSlots: number | null = null): Slot[] {
   text = sliceBeforeStop(text, stopPhrases);
 
@@ -611,10 +615,17 @@ export function parseSlotsFromText(text: string, stopPhrases: string[] = [], max
       selection = null;
       isEmpty = true;
     }
-    slots.push({ multiplier: cur.mult, selection, is_empty: isEmpty });
+
+    // Use fixed slot multiplier based on slot index, not the displayed value
+    // The displayed value includes player boost when a player is selected
+    const slotIndex = slots.length;
+    const fixedMultiplier = FIXED_SLOT_MULTIPLIERS[slotIndex] ?? cur.mult;
+
+    slots.push({ multiplier: fixedMultiplier, selection, is_empty: isEmpty });
   }
   return slots;
 }
+
 
 export function parsePlayerPoolFromModalText(modalText: string): PlayerPoolItem[] {
   const after = sliceAfterFirstStop(modalText, ["Press two player", "Press two players"]);
