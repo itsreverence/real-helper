@@ -56,7 +56,7 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
         <div class="player-rank">#${i + 1}</div>
         <div class="player-info">
           <div class="player-name">${name}${st}</div>
-          <div class="player-meta">${p.team || sport} • ${p.position || "—"}</div>
+          <div class="player-meta">${[p.team, p.position].filter(Boolean).join(" • ") || ""}</div>
         </div>
         <div class="player-stats">
           ${bx}

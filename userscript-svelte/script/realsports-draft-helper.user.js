@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RealSports Draft Helper
 // @namespace    local.realsports.drafthelper
-// @version      0.91.14
+// @version      0.91.15
 // @description  RealSports Draft Helper (Svelte + TypeScript)
 // @homepageURL  https://github.com/itsreverence/real-helper
 // @supportURL   https://github.com/itsreverence/real-helper/issues
@@ -114,7 +114,7 @@ ${n}
         <div class="player-rank">#${c+1}</div>
         <div class="player-info">
           <div class="player-name">${d}${f}</div>
-          <div class="player-meta">${l.team||r} • ${l.position||"—"}</div>
+          <div class="player-meta">${[l.team,l.position].filter(Boolean).join(" • ")||""}</div>
         </div>
         <div class="player-stats">
           ${v}
