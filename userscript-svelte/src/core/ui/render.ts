@@ -73,9 +73,9 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
       <div class="h">DRAFT INFO</div>
       <div class="sub">
         ${draftTypeLabel ? `<span class="text-accent">TYPE:</span> ${escapeHtml(draftTypeLabel)} &nbsp;•&nbsp; ` : ""}
-        <span class="text-accent">SPORT:</span> ${escapeHtml(sport)} &nbsp;•&nbsp; 
-        <span class="text-accent">SLOTS:</span> ${escapeHtml(expectedSlots)}
+        <span class="text-accent">SPORT:</span> ${escapeHtml(sport)}
       </div>
+
     </div>
     
     <div class="card">

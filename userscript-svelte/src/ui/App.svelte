@@ -911,9 +911,6 @@
                   payload.player_pool?.length ||
                   "?"} players</span
               >
-              <span
-                >🎯 {payload.slots?.length || payload.expected_slots || "?"} slots</span
-              >
               {#if payload.game_matchup}
                 <span
                   >⚔️ {payload.game_matchup.team1} vs {payload.game_matchup
