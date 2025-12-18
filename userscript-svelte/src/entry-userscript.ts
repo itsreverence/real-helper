@@ -27,6 +27,25 @@ function ensureHandle(shadow: ShadowRoot) {
     handle.type = "button";
     handle.title = "Open Draft Helper";
     handle.setAttribute("aria-label", "Open Draft Helper");
+    // Inline styles for guaranteed visibility in shadow DOM
+    handle.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 2147483647;
+      width: 50px;
+      height: 50px;
+      border-radius: 4px;
+      background: rgba(18, 18, 26, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #00E5FF;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      transition: all 0.2s ease;
+    `;
     handle.innerHTML = `
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path d="M12 2l1.2 4.3L17.5 8l-4.3 1.2L12 13.5l-1.2-4.3L6.5 8l4.3-1.7L12 2Z" fill="currentColor" opacity="0.95"/>
@@ -34,10 +53,19 @@ function ensureHandle(shadow: ShadowRoot) {
       </svg>
     `;
     handle.addEventListener("click", () => setUiState({ hidden: false }));
+    handle.addEventListener("mouseenter", () => {
+      handle!.style.background = "#00E5FF";
+      handle!.style.color = "#000";
+    });
+    handle.addEventListener("mouseleave", () => {
+      handle!.style.background = "rgba(18, 18, 26, 0.95)";
+      handle!.style.color = "#00E5FF";
+    });
     shadow.appendChild(handle);
   }
   return handle;
 }
+
 
 function applyHidden(appRoot: HTMLElement, handle: HTMLElement, hidden: boolean) {
   appRoot.style.display = hidden ? "none" : "";

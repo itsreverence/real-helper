@@ -294,7 +294,7 @@
                                         <input
                                             type="number"
                                             min="1"
-                                            max="10"
+                                            max="5"
                                             bind:value={
                                                 globalConfig.webMaxResults
                                             }
