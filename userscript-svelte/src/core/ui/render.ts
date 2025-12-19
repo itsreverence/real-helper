@@ -114,12 +114,27 @@ export function renderAiJsonHtml(obj: any, sources: string[] = [], draftType?: s
   const assumptions = Array.isArray(obj?.assumptions) ? obj.assumptions : [];
   const questions = Array.isArray(obj?.questions) ? obj.questions : [];
 
+  // For game drafts, hide boost column (no player boosts, just slot multipliers)
+  const isGameDraft = draftType === "game";
+
   const rows = lineup.map((s: any) => {
     const idx = escapeHtml(s?.slot_index);
     const player = escapeHtml(s?.player || "");
     const sm = fmtX(s?.slot_multiplier);
     const pb = (typeof s?.player_boost_x === "number") ? `+${escapeHtml(s.player_boost_x)}X` : "+0X";
     const em = fmtX(s?.effective_multiplier);
+
+    if (isGameDraft) {
+      // Game draft: SLOT | PLAYER | MULT only
+      return `
+      <tr>
+        <td style="padding: 8px 12px;" class="font-mono">${idx}</td>
+        <td style="padding: 8px 12px; font-weight: 800;">${player}</td>
+        <td style="padding: 8px 12px;"><span class="text-accent font-mono" style="font-weight: 900;">${sm}</span></td>
+      </tr>
+    `;
+    }
+    // League draft: full table with BOOST and EFF
     return `
       <tr>
         <td style="padding: 8px 12px;" class="font-mono">${idx}</td>
@@ -171,6 +186,22 @@ export function renderAiJsonHtml(obj: any, sources: string[] = [], draftType?: s
     </div>
   `).join("");
 
+  // Table columns: game draft has 3 columns, league draft has 5
+  const tableColspan = isGameDraft ? 3 : 5;
+  const tableHeader = isGameDraft
+    ? `<tr>
+            <th style="text-align: left; padding: 8px 12px;">SLOT</th>
+            <th style="text-align: left; padding: 8px 12px;">PLAYER</th>
+            <th style="text-align: left; padding: 8px 12px;">MULT</th>
+          </tr>`
+    : `<tr>
+            <th style="text-align: left; padding: 8px 12px;">SLOT</th>
+            <th style="text-align: left; padding: 8px 12px;">PLAYER</th>
+            <th style="text-align: left; padding: 8px 12px;">MULT</th>
+            <th style="text-align: left; padding: 8px 12px;">BOOST</th>
+            <th style="text-align: left; padding: 8px 12px;">EFF.</th>
+          </tr>`;
+
   return `
     <div class="card" style="border-left: 4px solid var(--rsdh-accent-green);">
       <div class="h">AI CO-PILOT ANALYSIS</div>
@@ -181,16 +212,10 @@ export function renderAiJsonHtml(obj: any, sources: string[] = [], draftType?: s
       <div class="h">OPTIMIZED LINEUP</div>
       <table class="table" style="width: 100%; border-collapse: collapse;">
         <thead>
-          <tr>
-            <th style="text-align: left; padding: 8px 12px;">SLOT</th>
-            <th style="text-align: left; padding: 8px 12px;">PLAYER</th>
-            <th style="text-align: left; padding: 8px 12px;">MULT</th>
-            <th style="text-align: left; padding: 8px 12px;">BOOST</th>
-            <th style="text-align: left; padding: 8px 12px;">EFF.</th>
-          </tr>
+          ${tableHeader}
         </thead>
         <tbody>
-          ${rows || "<tr><td colspan='5' style='text-align:center; padding: 24px; opacity: 0.3;'>ANALYSIS PENDING</td></tr>"}
+          ${rows || `<tr><td colspan='${tableColspan}' style='text-align:center; padding: 24px; opacity: 0.3;'>ANALYSIS PENDING</td></tr>`}
         </tbody>
       </table>
     </div>

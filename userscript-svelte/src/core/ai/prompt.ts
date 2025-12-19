@@ -126,17 +126,21 @@ function baseContext(payload: PayloadOk) {
     ? "Also provide bet recommendations for: Top 50%, Top 20%, Top 10."
     : "";
 
-  const context = [
-    "You are helping build an optimal Draft Lineup.",
+  // Scoring explanation differs for game vs league drafts
+  const scoringSection = draftType === "game" ? [
+    "### How Scoring Works",
+    `- You must select EXACTLY ${expectedSlots} unique players.`,
+    "- Each lineup slot has a slot multiplier (e.g. 2.0x, 1.8x, 1.6x...).",
+    "- Game drafts do NOT have player boosts - only slot multipliers apply.",
     "",
-    "### Context (captured from realsports.io UI)",
-    `URL: ${payload?.url || "<unknown>"}`,
-    `Captured At: ${payload?.captured_at || "<unknown>"}`,
-    `Capture Mode: ${payload?.mode || "<unknown>"}`,
-    `Sport: ${payload?.sport || "<unknown>"}`,
-    `Draft Type: ${draftType === "game" ? "Game (single matchup)" : "League (all games)"}`,
+    "### Scoring Formula",
+    "  lineup_score = SUM( player_real_points × slot_multiplier )",
     "",
-    ...gamesContext,
+    "- Goal: maximize total lineup_score.",
+    "- Slot multipliers amplify whatever the player actually scores in the game.",
+    "- Example: 20 real points × 2.0x = 40 Draft points.",
+    "",
+  ] : [
     "### How Scoring Works",
     `- You must select EXACTLY ${expectedSlots} unique players.`,
     "- Each lineup slot has a slot multiplier (e.g. 2.0x, 1.8x, 1.6x...).",
@@ -151,11 +155,30 @@ function baseContext(payload: PayloadOk) {
     "- Multipliers amplify whatever the player actually scores that day.",
     "- Example: 5 real points × 3.0x = 15 Draft points; 20 real points × 2.0x = 40 Draft points.",
     "",
+  ];
+
+  // Pool description differs based on draft type
+  const poolDescription = draftType === "game"
+    ? "Available player pool:"
+    : "Available player pool (with their +boost values shown in the UI):";
+
+  const context = [
+    "You are helping build an optimal Draft Lineup.",
+    "",
+    "### Context (captured from realsports.io UI)",
+    `URL: ${payload?.url || "<unknown>"}`,
+    `Captured At: ${payload?.captured_at || "<unknown>"}`,
+    `Capture Mode: ${payload?.mode || "<unknown>"}`,
+    `Sport: ${payload?.sport || "<unknown>"}`,
+    `Draft Type: ${draftType === "game" ? "Game (single matchup)" : "League (all games)"}`,
+    "",
+    ...gamesContext,
+    ...scoringSection,
     ...bettingSection,
     "Current slots:",
     slotLines || "- <no slots found>",
     "",
-    "Available player pool (with their +boost values shown in the UI):",
+    poolDescription,
     poolLines || "- <no pool detected>",
     poolNote,
     "",
@@ -180,12 +203,17 @@ export function buildChatPromptFromPayload(payload: PayloadOk): string {
     "- Recommendations for Top 50%, Top 20%, Top 10 (recommend yes/no + confidence + one sentence reason).",
   ] : [];
 
+  // Lineup output format differs for game vs league drafts
+  const lineupFormat = draftType === "game"
+    ? `- List exactly ${expectedSlots} slots in order (slot 1..${expectedSlots}), showing: player and slot multiplier.`
+    : `- List exactly ${expectedSlots} slots in order (slot 1..${expectedSlots}), showing: player, slot multiplier, player boost, and effective multiplier.`;
+
   return [
     context,
     "### Output format (human-readable)",
     "Reply in plain English with these sections:",
     "1) Lineup (final)",
-    `- List exactly ${expectedSlots} slots in order (slot 1..${expectedSlots}), showing: player, slot multiplier, player boost, and effective multiplier.`,
+    lineupFormat,
     "2) Why this lineup",
     "- 1–3 bullets summarizing the approach.",
     "3) Slot-by-slot rationale",
