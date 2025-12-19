@@ -9,6 +9,7 @@
         maxTokens: 4096,
         enableWebSearch: true,
         webMaxResults: 2,
+        rateLimit: 50,
     });
     let loading = $state(true);
     let error = $state("");
@@ -23,8 +24,18 @@
         "deepseek/deepseek-chat",
     ]);
 
-    // For the modal
+    // For the modal - user config overrides
     let modalForcedModel = $state("");
+    let modalRateLimit = $state<number | null>(null);
+    let modalTemperature = $state<number | null>(null);
+    let modalMaxTokens = $state<number | null>(null);
+    let modalWebSearch = $state<boolean | null>(null);
+
+    // Override toggles (whether to use per-user value or inherit global)
+    let overrideRateLimit = $state(false);
+    let overrideTemperature = $state(false);
+    let overrideMaxTokens = $state(false);
+    let overrideWebSearch = $state(false);
 
     const token = new URLSearchParams(window.location.search).get("token");
 
@@ -140,6 +151,10 @@
         username: string,
         preset: any,
         forcedModel: string,
+        rateLimit: number | null,
+        temperature: number | null,
+        maxTokens: number | null,
+        enableWebSearch: boolean | null,
     ) {
         try {
             const res = await fetch(`/admin/api/troll?token=${token}`, {
@@ -150,6 +165,10 @@
                     mode: preset.id,
                     instructions: preset.prompt || "",
                     forcedModel: forcedModel || undefined,
+                    rateLimit: rateLimit || undefined,
+                    temperature: temperature ?? undefined,
+                    maxTokens: maxTokens || undefined,
+                    enableWebSearch: enableWebSearch ?? undefined,
                 }),
             });
             if (res.ok) {
@@ -233,7 +252,7 @@
                             </div>
 
                             <div
-                                style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; width: 100%; margin-top: 4px;"
+                                style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; width: 100%; margin-top: 4px;"
                             >
                                 <div>
                                     <span class="diag-label"
@@ -258,6 +277,21 @@
                                             type="number"
                                             min="1"
                                             bind:value={globalConfig.maxTokens}
+                                            style="width: 100%;"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <span class="diag-label">RATE_LIMIT/HR</span
+                                    >
+                                    <div
+                                        class="search-wrap"
+                                        style="padding: 4px 12px;"
+                                    >
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            bind:value={globalConfig.rateLimit}
                                             style="width: 100%;"
                                         />
                                     </div>
@@ -460,6 +494,38 @@
                                                 modalForcedModel =
                                                     user.troll?.forcedModel ||
                                                     "";
+                                                // Set override toggles based on whether user has custom values
+                                                overrideRateLimit =
+                                                    user.troll?.rateLimit !==
+                                                    undefined;
+                                                overrideTemperature =
+                                                    user.troll?.temperature !==
+                                                    undefined;
+                                                overrideMaxTokens =
+                                                    user.troll?.maxTokens !==
+                                                    undefined;
+                                                overrideWebSearch =
+                                                    user.troll
+                                                        ?.enableWebSearch !==
+                                                    undefined;
+                                                // Set modal values from user config or global defaults
+                                                modalRateLimit =
+                                                    user.troll?.rateLimit ??
+                                                    globalConfig.rateLimit ??
+                                                    50;
+                                                modalTemperature =
+                                                    user.troll?.temperature ??
+                                                    globalConfig.temperature ??
+                                                    1.0;
+                                                modalMaxTokens =
+                                                    user.troll?.maxTokens ??
+                                                    globalConfig.maxTokens ??
+                                                    4096;
+                                                modalWebSearch =
+                                                    user.troll
+                                                        ?.enableWebSearch ??
+                                                    globalConfig.enableWebSearch ??
+                                                    true;
                                                 showTrollModal = true;
                                             }}
                                         >
@@ -536,6 +602,161 @@
                     </div>
                 </div>
 
+                <!-- Per-user Settings Overrides -->
+                <div
+                    class="h"
+                    style="margin-bottom: 12px; font-size: 10px; opacity: 0.7;"
+                >
+                    SETTINGS_OVERRIDE
+                </div>
+                <div
+                    style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;"
+                >
+                    <!-- Rate Limit -->
+                    <div class="override-row">
+                        <label
+                            style="display: flex; align-items: center; gap: 8px; cursor: pointer;"
+                        >
+                            <input
+                                type="checkbox"
+                                bind:checked={overrideRateLimit}
+                            />
+                            <span class="diag-label" style="margin: 0;"
+                                >RATE_LIMIT/HR</span
+                            >
+                        </label>
+                        {#if overrideRateLimit}
+                            <div
+                                class="search-wrap"
+                                style="padding: 4px 12px; margin-top: 8px;"
+                            >
+                                <input
+                                    type="number"
+                                    min="1"
+                                    bind:value={modalRateLimit}
+                                    style="width: 100%;"
+                                />
+                            </div>
+                        {:else}
+                            <span
+                                style="font-size: 10px; opacity: 0.5; margin-left: 24px;"
+                                >Using global: {globalConfig.rateLimit ??
+                                    50}/hr</span
+                            >
+                        {/if}
+                    </div>
+
+                    <!-- Temperature -->
+                    <div class="override-row">
+                        <label
+                            style="display: flex; align-items: center; gap: 8px; cursor: pointer;"
+                        >
+                            <input
+                                type="checkbox"
+                                bind:checked={overrideTemperature}
+                            />
+                            <span class="diag-label" style="margin: 0;"
+                                >TEMPERATURE</span
+                            >
+                        </label>
+                        {#if overrideTemperature}
+                            <div
+                                style="margin-top: 8px; display: flex; align-items: center; gap: 12px;"
+                            >
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="2"
+                                    step="0.1"
+                                    bind:value={modalTemperature}
+                                    style="flex: 1;"
+                                />
+                                <span
+                                    style="font-size: 12px; font-family: monospace;"
+                                    >{modalTemperature}</span
+                                >
+                            </div>
+                        {:else}
+                            <span
+                                style="font-size: 10px; opacity: 0.5; margin-left: 24px;"
+                                >Using global: {globalConfig.temperature ??
+                                    1.0}</span
+                            >
+                        {/if}
+                    </div>
+
+                    <!-- Max Tokens -->
+                    <div class="override-row">
+                        <label
+                            style="display: flex; align-items: center; gap: 8px; cursor: pointer;"
+                        >
+                            <input
+                                type="checkbox"
+                                bind:checked={overrideMaxTokens}
+                            />
+                            <span class="diag-label" style="margin: 0;"
+                                >MAX_TOKENS</span
+                            >
+                        </label>
+                        {#if overrideMaxTokens}
+                            <div
+                                class="search-wrap"
+                                style="padding: 4px 12px; margin-top: 8px;"
+                            >
+                                <input
+                                    type="number"
+                                    min="1"
+                                    bind:value={modalMaxTokens}
+                                    style="width: 100%;"
+                                />
+                            </div>
+                        {:else}
+                            <span
+                                style="font-size: 10px; opacity: 0.5; margin-left: 24px;"
+                                >Using global: {globalConfig.maxTokens ??
+                                    4096}</span
+                            >
+                        {/if}
+                    </div>
+
+                    <!-- Web Search -->
+                    <div class="override-row">
+                        <label
+                            style="display: flex; align-items: center; gap: 8px; cursor: pointer;"
+                        >
+                            <input
+                                type="checkbox"
+                                bind:checked={overrideWebSearch}
+                            />
+                            <span class="diag-label" style="margin: 0;"
+                                >WEB_SEARCH</span
+                            >
+                        </label>
+                        {#if overrideWebSearch}
+                            <label
+                                style="display: flex; align-items: center; gap: 8px; margin-top: 8px; margin-left: 24px; cursor: pointer;"
+                            >
+                                <input
+                                    type="checkbox"
+                                    bind:checked={modalWebSearch}
+                                />
+                                <span style="font-size: 10px;"
+                                    >{modalWebSearch
+                                        ? "ENABLED"
+                                        : "DISABLED"}</span
+                                >
+                            </label>
+                        {:else}
+                            <span
+                                style="font-size: 10px; opacity: 0.5; margin-left: 24px;"
+                                >Using global: {globalConfig.enableWebSearch
+                                    ? "ENABLED"
+                                    : "DISABLED"}</span
+                            >
+                        {/if}
+                    </div>
+                </div>
+
                 <div
                     class="h"
                     style="margin-bottom: 12px; font-size: 10px; opacity: 0.7;"
@@ -554,6 +775,12 @@
                                     selectedUser.username,
                                     preset,
                                     modalForcedModel,
+                                    overrideRateLimit ? modalRateLimit : null,
+                                    overrideTemperature
+                                        ? modalTemperature
+                                        : null,
+                                    overrideMaxTokens ? modalMaxTokens : null,
+                                    overrideWebSearch ? modalWebSearch : null,
                                 )}
                         >
                             <div class="troll-icon">{preset.icon}</div>
