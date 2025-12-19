@@ -111,6 +111,21 @@ function baseContext(payload: PayloadOk) {
     ];
   }
 
+  // Only include betting info for league drafts (game drafts don't have top 50/20/10 betting)
+  const bettingSection = draftType !== "game" ? [
+    "### Betting payouts (Rax)",
+    "- Entry fee is ALWAYS 100 Rax for any bet tier.",
+    "- If lineup finishes Top 50%: payout 170 Rax (profit +70).",
+    "- If lineup finishes Top 20%: payout 350 Rax (profit +250).",
+    "- If lineup finishes Top 10%: payout 700 Rax (profit +600).",
+    "",
+  ] : [];
+
+  // Bet recommendation instruction only for league drafts
+  const betInstruction = draftType !== "game"
+    ? "Also provide bet recommendations for: Top 50%, Top 20%, Top 10."
+    : "";
+
   const context = [
     "You are helping build an optimal Draft Lineup.",
     "",
@@ -136,13 +151,7 @@ function baseContext(payload: PayloadOk) {
     "- Multipliers amplify whatever the player actually scores that day.",
     "- Example: 5 real points × 3.0x = 15 Draft points; 20 real points × 2.0x = 40 Draft points.",
     "",
-
-    "### Betting payouts (Rax)",
-    "- Entry fee is ALWAYS 100 Rax for any bet tier.",
-    "- If lineup finishes Top 50%: payout 170 Rax (profit +70).",
-    "- If lineup finishes Top 20%: payout 350 Rax (profit +250).",
-    "- If lineup finishes Top 10%: payout 700 Rax (profit +600).",
-    "",
+    ...bettingSection,
     "Current slots:",
     slotLines || "- <no slots found>",
     "",
@@ -154,16 +163,23 @@ function baseContext(payload: PayloadOk) {
     "Choose exactly the required number of players from the pool and assign them to slots.",
     "Player status meanings: Active = confirmed playing, Questionable = may or may not play, Out/Inactive = will not play.",
     "Explain briefly why each player goes into each slot.",
-    "Also provide bet recommendations for: Top 50%, Top 20%, Top 10.",
+    betInstruction,
     "",
   ].join("\n");
 
-  return { context, expectedSlots };
+  return { context, expectedSlots, draftType };
 }
 
 // For Copy Prompt (chat UI): readable, no JSON.
 export function buildChatPromptFromPayload(payload: PayloadOk): string {
-  const { context, expectedSlots } = baseContext(payload);
+  const { context, expectedSlots, draftType } = baseContext(payload);
+
+  // Only include bets section for league drafts
+  const betsSection = draftType !== "game" ? [
+    "4) Bets",
+    "- Recommendations for Top 50%, Top 20%, Top 10 (recommend yes/no + confidence + one sentence reason).",
+  ] : [];
+
   return [
     context,
     "### Output format (human-readable)",
@@ -174,8 +190,7 @@ export function buildChatPromptFromPayload(payload: PayloadOk): string {
     "- 1–3 bullets summarizing the approach.",
     "3) Slot-by-slot rationale",
     "- Short note per slot explaining the assignment.",
-    "4) Bets",
-    "- Recommendations for Top 50%, Top 20%, Top 10 (recommend yes/no + confidence + one sentence reason).",
+    ...betsSection,
     "",
     "Do NOT include JSON. Keep it readable and actionable.",
   ].join("\n");

@@ -278,9 +278,16 @@
           } catch {
             lastDebugEvents = "";
           }
+          // Get draft type from payload to conditionally show betting section
+          let draftTypeForRender: string | undefined;
+          try {
+            const payload = JSON.parse(lastPayloadRaw || "{}");
+            draftTypeForRender = payload?.draft_type;
+          } catch {}
           aiResultHtml = renderAiJsonHtml(
             obj,
             lastSources ? lastSources.split("\n") : [],
+            draftTypeForRender,
           );
           tab = "results";
           return;
@@ -333,7 +340,13 @@
           sources =
             JSON.parse(localStorage.getItem(LAST_AI_SOURCES_KEY) || "[]") || [];
         } catch {}
-        outputHtml = renderAiJsonHtml(obj, sources);
+        // Get draft type from payload to conditionally show betting section
+        let draftTypeForRender: string | undefined;
+        try {
+          const payload = JSON.parse(lastPayloadRaw || "{}");
+          draftTypeForRender = payload?.draft_type;
+        } catch {}
+        outputHtml = renderAiJsonHtml(obj, sources, draftTypeForRender);
         return;
       }
     } catch {

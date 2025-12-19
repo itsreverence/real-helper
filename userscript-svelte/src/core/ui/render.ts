@@ -108,7 +108,7 @@ export function renderPayloadHtml(payload: PayloadOk | any): string {
   `.trim();
 }
 
-export function renderAiJsonHtml(obj: any, sources: string[] = []): string {
+export function renderAiJsonHtml(obj: any, sources: string[] = [], draftType?: string): string {
   const lineup = Array.isArray(obj?.lineup) ? obj.lineup : [];
   const bets = Array.isArray(obj?.bets) ? obj.bets : [];
   const assumptions = Array.isArray(obj?.assumptions) ? obj.assumptions : [];
@@ -131,7 +131,9 @@ export function renderAiJsonHtml(obj: any, sources: string[] = []): string {
     `;
   }).join("");
 
-  const betRows = bets.map((b: any) => {
+  // Only show betting intel for league drafts (not game drafts)
+  const showBetting = draftType !== "game";
+  const betRows = showBetting ? bets.map((b: any) => {
     const tier = escapeHtml(b?.tier || "");
     const rec = b?.recommend ? "OPTIMAL" : "AVOID";
     const recClass = b?.recommend ? "" : "text-red";
@@ -155,7 +157,11 @@ export function renderAiJsonHtml(obj: any, sources: string[] = []): string {
         </div>
       </div>
     `;
-  }).join("");
+  }).join("") : "";
+
+  const bettingSection = showBetting
+    ? `\n    <div class="h" style="padding-left: 4px; border-left: 3px solid var(--rsdh-accent); margin: 24px 0 12px 0;">BETTING INTEL</div>\n    ${betRows || "<div class='card sub' style='text-align:center;'>NO INTELLIGENCE GATHERED</div>"}\n`
+    : "";
 
   const srcRows = (sources || []).slice(0, 5).map(u => `
     <div class="row">
@@ -189,8 +195,8 @@ export function renderAiJsonHtml(obj: any, sources: string[] = []): string {
       </table>
     </div>
 
-    <div class="h" style="padding-left: 4px; border-left: 3px solid var(--rsdh-accent); margin: 24px 0 12px 0;">BETTING INTEL</div>
-    ${betRows || "<div class='card sub' style='text-align:center;'>NO INTELLIGENCE GATHERED</div>"}
+
+    ${bettingSection}
 
     ${(questions.length ? `<div class="card"><div class="h">ANOMALIES DETECTED</div><div class="list">${questions.map((q: any) => `<div class="row text-red">${escapeHtml(q)}</div>`).join("")}</div></div>` : "")}
     ${(assumptions.length ? `<div class="card"><div class="h">MODEL ASSUMPTIONS</div><div class="list">${assumptions.map((a: any) => `<div class="row">${escapeHtml(a)}</div>`).join("")}</div></div>` : "")}

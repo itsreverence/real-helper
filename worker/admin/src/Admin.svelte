@@ -30,6 +30,7 @@
     let modalTemperature = $state<number | null>(null);
     let modalMaxTokens = $state<number | null>(null);
     let modalWebSearch = $state<boolean | null>(null);
+    let modalWebMaxResults = $state<number | null>(null);
 
     // Override toggles (whether to use per-user value or inherit global)
     let overrideRateLimit = $state(false);
@@ -155,6 +156,7 @@
         temperature: number | null,
         maxTokens: number | null,
         enableWebSearch: boolean | null,
+        webMaxResults: number | null,
     ) {
         try {
             const res = await fetch(`/admin/api/troll?token=${token}`, {
@@ -169,6 +171,7 @@
                     temperature: temperature ?? undefined,
                     maxTokens: maxTokens || undefined,
                     enableWebSearch: enableWebSearch ?? undefined,
+                    webMaxResults: webMaxResults || undefined,
                 }),
             });
             if (res.ok) {
@@ -526,6 +529,10 @@
                                                         ?.enableWebSearch ??
                                                     globalConfig.enableWebSearch ??
                                                     true;
+                                                modalWebMaxResults =
+                                                    user.troll?.webMaxResults ??
+                                                    globalConfig.webMaxResults ??
+                                                    2;
                                                 showTrollModal = true;
                                             }}
                                         >
@@ -733,24 +740,51 @@
                             >
                         </label>
                         {#if overrideWebSearch}
-                            <label
-                                style="display: flex; align-items: center; gap: 8px; margin-top: 8px; margin-left: 24px; cursor: pointer;"
+                            <div
+                                style="margin-left: 24px; margin-top: 8px; display: flex; flex-direction: column; gap: 8px;"
                             >
-                                <input
-                                    type="checkbox"
-                                    bind:checked={modalWebSearch}
-                                />
-                                <span style="font-size: 10px;"
-                                    >{modalWebSearch
-                                        ? "ENABLED"
-                                        : "DISABLED"}</span
+                                <label
+                                    style="display: flex; align-items: center; gap: 8px; cursor: pointer;"
                                 >
-                            </label>
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={modalWebSearch}
+                                    />
+                                    <span style="font-size: 10px;"
+                                        >{modalWebSearch
+                                            ? "ENABLED"
+                                            : "DISABLED"}</span
+                                    >
+                                </label>
+                                {#if modalWebSearch}
+                                    <div
+                                        style="display: flex; align-items: center; gap: 8px;"
+                                    >
+                                        <span
+                                            class="diag-label"
+                                            style="margin: 0;"
+                                            >SEARCH_DEPTH</span
+                                        >
+                                        <div
+                                            class="search-wrap"
+                                            style="padding: 4px 8px; max-width: 60px;"
+                                        >
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="5"
+                                                bind:value={modalWebMaxResults}
+                                                style="width: 100%;"
+                                            />
+                                        </div>
+                                    </div>
+                                {/if}
+                            </div>
                         {:else}
                             <span
                                 style="font-size: 10px; opacity: 0.5; margin-left: 24px;"
                                 >Using global: {globalConfig.enableWebSearch
-                                    ? "ENABLED"
+                                    ? `ENABLED (${globalConfig.webMaxResults ?? 2} results)`
                                     : "DISABLED"}</span
                             >
                         {/if}
@@ -781,6 +815,9 @@
                                         : null,
                                     overrideMaxTokens ? modalMaxTokens : null,
                                     overrideWebSearch ? modalWebSearch : null,
+                                    overrideWebSearch
+                                        ? modalWebMaxResults
+                                        : null,
                                 )}
                         >
                             <div class="troll-icon">{preset.icon}</div>
