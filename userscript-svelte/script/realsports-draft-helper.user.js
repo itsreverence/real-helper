@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RealSports Draft Helper
 // @namespace    local.realsports.drafthelper
-// @version      0.91.40
+// @version      0.91.41
 // @description  RealSports Draft Helper (Svelte + TypeScript)
 // @homepageURL  https://github.com/itsreverence/real-helper
 // @supportURL   https://github.com/itsreverence/real-helper/issues
