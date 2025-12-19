@@ -196,11 +196,6 @@ ${n}
       </a>
     </div>
   `).join("");return`
-    <div class="card" style="border-left: 4px solid var(--rsdh-accent-green);">
-      <div class="h">AI CO-PILOT ANALYSIS</div>
-      <div class="sub">Structured data synchronization complete. Multi-source validation active.</div>
-    </div>
-
     <div class="card">
       <div class="h">OPTIMIZED LINEUP</div>
       <table class="table" style="width: 100%; border-collapse: collapse;">
