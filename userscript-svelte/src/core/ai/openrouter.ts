@@ -452,6 +452,10 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
   let lastMsg: any = null;
   let lastSources: string[] = [];
 
+  // Detect Gemini models to use compatible parameters from the start
+  // Gemini 2.0+ doesn't support parallel_tool_calls or provider.require_parameters
+  const isGeminiModel = cfg.model.toLowerCase().includes('gemini');
+
   for (let i = 0; i < maxIterations; i++) {
     const baseBody: any = {
       model: cfg.model,
@@ -461,12 +465,22 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
       tools,
     };
 
-    const attempts = [
-      { label: "tools+tool_choice+parallel+provider", body: { ...baseBody, tool_choice: forcedToolChoice, parallel_tool_calls: false, provider: { require_parameters: true }, plugins: toolLoopPlugins } },
-      { label: "tools+tool_choice+provider", body: { ...baseBody, tool_choice: forcedToolChoice, provider: { require_parameters: true }, plugins: toolLoopPlugins } },
-      { label: "tools+tool_choice", body: { ...baseBody, tool_choice: forcedToolChoice, plugins: toolLoopPlugins } },
-      { label: "tools-only", body: { ...baseBody, plugins: toolLoopPlugins } },
-    ];
+    // Build attempts based on model compatibility
+    // Gemini models: skip parameters they don't support to avoid 404 fallbacks
+    const attempts = isGeminiModel
+      ? [
+        // Gemini-compatible: just tools with tool_choice
+        { label: "gemini+tools+tool_choice", body: { ...baseBody, tool_choice: forcedToolChoice, plugins: toolLoopPlugins } },
+        // Fallback: tools only
+        { label: "gemini+tools-only", body: { ...baseBody, plugins: toolLoopPlugins } },
+      ]
+      : [
+        // Standard models: try all parameter combinations
+        { label: "tools+tool_choice+parallel+provider", body: { ...baseBody, tool_choice: forcedToolChoice, parallel_tool_calls: false, provider: { require_parameters: true }, plugins: toolLoopPlugins } },
+        { label: "tools+tool_choice+provider", body: { ...baseBody, tool_choice: forcedToolChoice, provider: { require_parameters: true }, plugins: toolLoopPlugins } },
+        { label: "tools+tool_choice", body: { ...baseBody, tool_choice: forcedToolChoice, plugins: toolLoopPlugins } },
+        { label: "tools-only", body: { ...baseBody, plugins: toolLoopPlugins } },
+      ];
 
     const { res, usedLabel } = await gmHttpJsonWithFallback(attempts, { url: apiEndpoint, headers: baseHeaders, timeoutMs: 90000 });
     if (usedLabel !== attempts[0].label) {
@@ -623,14 +637,22 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
     response_format: schema,
   };
 
-  const finalAttempts = [
-    // Try strict + tools first (best if routable)
-    { label: "final+tools+tool_choice+provider+plugins", body: { ...finalBase, tools, tool_choice: "none", provider: { require_parameters: true }, plugins } },
-    { label: "final+tools+tool_choice", body: { ...finalBase, tools, tool_choice: "none", plugins: [] } },
-    // If routing can't handle tools params, drop tools entirely but keep the schema
-    { label: "final+schema+plugins", body: { ...finalBase, plugins } },
-    { label: "final+schema-only", body: { ...finalBase } },
-  ];
+  // Build final attempts based on model compatibility (same as tool loop)
+  const finalAttempts = isGeminiModel
+    ? [
+      // Gemini-compatible: simple schema call with tool_choice none
+      { label: "gemini+final+tools+tool_choice", body: { ...finalBase, tools, tool_choice: "none", plugins } },
+      { label: "gemini+final+schema+plugins", body: { ...finalBase, plugins } },
+      { label: "gemini+final+schema-only", body: { ...finalBase } },
+    ]
+    : [
+      // Standard models: try all parameter combinations
+      { label: "final+tools+tool_choice+provider+plugins", body: { ...finalBase, tools, tool_choice: "none", provider: { require_parameters: true }, plugins } },
+      { label: "final+tools+tool_choice", body: { ...finalBase, tools, tool_choice: "none", plugins: [] } },
+      // If routing can't handle tools params, drop tools entirely but keep the schema
+      { label: "final+schema+plugins", body: { ...finalBase, plugins } },
+      { label: "final+schema-only", body: { ...finalBase } },
+    ];
 
   const { res: finalRes, usedLabel: finalUsed } = await gmHttpJsonWithFallback(finalAttempts, { url: apiEndpoint, headers: baseHeaders, timeoutMs: 90000 });
   if (finalUsed !== finalAttempts[0].label) {
