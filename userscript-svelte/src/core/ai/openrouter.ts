@@ -498,7 +498,29 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
     if (!('content' in assistantMsg)) assistantMsg.content = null;
     messages.push(assistantMsg);
 
-    for (const tc of toolCalls.slice(0, 3)) {
+    // For Gemini models with reasoning_details, we need to limit tool calls to what has reasoning data
+    // Gemini's reasoning_details array contains entries matched by id to specific tool calls
+    const reasoningDetailsIds = new Set(
+      (Array.isArray(msg?.reasoning_details) ? msg.reasoning_details : [])
+        .map((rd: any) => rd?.id)
+        .filter(Boolean)
+    );
+
+    // Determine how many tool calls to process
+    // If there are reasoning_details, only process tool calls that have matching reasoning
+    // Otherwise, limit to 3 to avoid long processing times
+    let toolCallsToProcess = toolCalls;
+    if (reasoningDetailsIds.size > 0) {
+      // Filter to only tool calls with reasoning_details
+      const matchedToolCalls = toolCalls.filter((tc: any) => reasoningDetailsIds.has(tc?.id));
+      console.log(`[OpenRouter] Gemini reasoning_details present: ${reasoningDetailsIds.size} entries, ${matchedToolCalls.length} matched tool calls`);
+      // If we have matches, use those; otherwise fall back to first tool call only
+      toolCallsToProcess = matchedToolCalls.length > 0 ? matchedToolCalls : toolCalls.slice(0, 1);
+    } else {
+      toolCallsToProcess = toolCalls.slice(0, 3);
+    }
+
+    for (const tc of toolCallsToProcess) {
       const toolName = tc?.function?.name;
       const rawArgs = tc?.function?.arguments;
       let args: any = {};
@@ -565,6 +587,12 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
       });
     }
   }
+
+  // Debug: log the full messages array we're about to send
+  console.log("[OpenRouter] Messages after tool loop:", JSON.stringify(messages, null, 2));
+  try {
+    localStorage.setItem("RSDH_LAST_MESSAGES_SENT", JSON.stringify(messages, null, 2));
+  } catch { /* ignore */ }
 
   // Final schema-forced call (no tool calls allowed)
   const schema = {
