@@ -69,8 +69,37 @@ function gmHttpJson({ method, url, headers, bodyObj, timeoutMs = 60000 }: { meth
           const text = resp?.responseText || "";
           const json = text ? JSON.parse(text) : null;
           if (resp.status >= 200 && resp.status < 300) resolve(json);
-          else reject(new Error(json?.error?.message || json?.message || `HTTP ${resp.status}`));
+          else {
+            // Enhanced error logging for debugging provider issues
+            const errorDetails = {
+              status: resp.status,
+              error: json?.error,
+              message: json?.message,
+              metadata: json?.error?.metadata,
+              provider_error: json?.error?.metadata?.provider_error,
+              raw: text?.slice(0, 2000), // First 2000 chars of raw response
+            };
+            console.error("[OpenRouter API Error]", errorDetails);
+            // Store for debugging via console
+            try {
+              localStorage.setItem("RSDH_LAST_API_ERROR", JSON.stringify(errorDetails, null, 2));
+            } catch { /* ignore */ }
+
+            // Build a more descriptive error message
+            const providerErr = json?.error?.metadata?.provider_error;
+            const errCode = json?.error?.code;
+            const errType = json?.error?.type;
+            let errMsg = json?.error?.message || json?.message || `HTTP ${resp.status}`;
+            if (providerErr) {
+              errMsg += ` | Provider: ${typeof providerErr === 'string' ? providerErr : JSON.stringify(providerErr)}`;
+            }
+            if (errCode) errMsg += ` [code: ${errCode}]`;
+            if (errType) errMsg += ` [type: ${errType}]`;
+
+            reject(new Error(errMsg));
+          }
         } catch (e) {
+          console.error("[OpenRouter Parse Error]", e, resp?.responseText?.slice(0, 500));
           reject(e);
         }
       },
