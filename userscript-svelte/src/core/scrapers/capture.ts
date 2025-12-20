@@ -359,10 +359,15 @@ export function scrapeGamesFromSidebar(): GameInfo[] {
 }
 
 /**
- * Detect if this is a game-specific draft by looking for "X [SPORT] entries remaining today".
+ * Detect if this is a game-specific draft by looking for:
+ * 1. "X [SPORT] entries remaining today" text (shown when drafting for the first time)
+ * 2. The Clear/trash button (shown when updating an existing game draft)
+ * 
  * Game drafts are limited (e.g., 3 per sport per day) unlike league drafts.
+ * League drafts don't have the entries text or the Clear button when updating.
  */
 export function detectGameDraftEntries(): { isGameDraft: boolean; entriesRemaining: number | null; sport: string | null } {
+  // Method 1: Check for "N SPORT entries remaining today" text
   // Pattern: "3 NBA entries remaining today"
   const entriesRe = /^(\d+)\s+(NFL|NHL|NBA|MLB|CFB|CBB|FC|WNBA)\s+entr(?:y|ies)\s+remaining\s+today$/i;
 
@@ -378,6 +383,27 @@ export function detectGameDraftEntries(): { isGameDraft: boolean; entriesRemaini
       };
     }
   }
+
+  // Method 2: Check for Clear/trash button (only present on game drafts when updating)
+  // The trash icon SVG has a distinctive path starting with "M53.21 467"
+  const trashSvgs = qsa<SVGElement>("svg");
+  for (const svg of trashSvgs) {
+    const paths = Array.from(svg.querySelectorAll("path"));
+    for (const path of paths) {
+      const d = path.getAttribute("d") || "";
+      // The trash can icon path starts with "M53.21 467" (delete button)
+      if (d.startsWith("M53.21 467")) {
+        // Found the Clear button - this is a game draft being updated
+        return {
+          isGameDraft: true,
+          entriesRemaining: null, // Unknown when updating
+          sport: null, // Cannot determine sport from Clear button alone
+        };
+      }
+    }
+  }
+
+  // Neither entries text nor Clear button found - this is a league draft
   return { isGameDraft: false, entriesRemaining: null, sport: null };
 }
 
