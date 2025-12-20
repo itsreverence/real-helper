@@ -489,15 +489,6 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
       localStorage.setItem("RSDH_LAST_ASSISTANT_MSG", JSON.stringify(msg, null, 2));
     } catch { /* ignore */ }
 
-    // Use JSON deep clone to ensure we don't have any reference issues that could corrupt data
-    // This is critical for preserving reasoning_details/thought signatures exactly as received
-    const assistantMsg: any = JSON.parse(JSON.stringify(msg));
-    // Ensure role is set (in case it wasn't in the response)
-    assistantMsg.role = "assistant";
-    // Ensure content field exists
-    if (!('content' in assistantMsg)) assistantMsg.content = null;
-    messages.push(assistantMsg);
-
     // For Gemini models with reasoning_details, we need to limit tool calls to what has reasoning data
     // Gemini's reasoning_details array contains entries matched by id to specific tool calls
     const reasoningDetailsIds = new Set(
@@ -506,10 +497,10 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
         .filter(Boolean)
     );
 
-    // Determine how many tool calls to process
+    // Determine how many tool calls to process BEFORE we build the assistant message
     // If there are reasoning_details, only process tool calls that have matching reasoning
     // Otherwise, limit to 3 to avoid long processing times
-    let toolCallsToProcess = toolCalls;
+    let toolCallsToProcess: any[];
     if (reasoningDetailsIds.size > 0) {
       // Filter to only tool calls with reasoning_details
       const matchedToolCalls = toolCalls.filter((tc: any) => reasoningDetailsIds.has(tc?.id));
@@ -519,6 +510,30 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
     } else {
       toolCallsToProcess = toolCalls.slice(0, 3);
     }
+
+    // Get the set of tool call IDs we're actually processing
+    const toolCallIdsToProcess = new Set(toolCallsToProcess.map((tc: any) => tc?.id).filter(Boolean));
+
+    // Use JSON deep clone to ensure we don't have any reference issues that could corrupt data
+    // This is critical for preserving reasoning_details/thought signatures exactly as received
+    const assistantMsg: any = JSON.parse(JSON.stringify(msg));
+    // Ensure role is set (in case it wasn't in the response)
+    assistantMsg.role = "assistant";
+    // Ensure content field exists
+    if (!('content' in assistantMsg)) assistantMsg.content = null;
+
+    // CRITICAL: Filter tool_calls and reasoning_details to ONLY include the ones we're processing
+    // This prevents mismatch between # of tool_calls and # of tool results
+    if (Array.isArray(assistantMsg.tool_calls)) {
+      assistantMsg.tool_calls = assistantMsg.tool_calls.filter((tc: any) => toolCallIdsToProcess.has(tc?.id));
+      console.log(`[OpenRouter] Filtered assistant tool_calls to ${assistantMsg.tool_calls.length} (from ${toolCalls.length})`);
+    }
+    if (Array.isArray(assistantMsg.reasoning_details)) {
+      assistantMsg.reasoning_details = assistantMsg.reasoning_details.filter((rd: any) => toolCallIdsToProcess.has(rd?.id));
+      console.log(`[OpenRouter] Filtered reasoning_details to ${assistantMsg.reasoning_details.length}`);
+    }
+
+    messages.push(assistantMsg);
 
     for (const tc of toolCallsToProcess) {
       const toolName = tc?.function?.name;
