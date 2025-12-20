@@ -483,12 +483,18 @@ export async function askOpenRouterStructured(opts: { prompt: string; web: boole
 
     // Push assistant tool call message preserving ALL fields (required for Gemini 2.0+ thought signatures)
     // See: https://openrouter.ai/docs/guides/best-practices/reasoning-tokens#preserving-reasoning-blocks
-    const assistantMsg: any = { role: "assistant" };
-    // Copy all fields from the response message to preserve thought signatures, reasoning, etc.
-    for (const key of Object.keys(msg || {})) {
-      assistantMsg[key] = msg[key];
-    }
-    // Ensure required fields are present
+    // Debug: log the full message structure to understand what fields Gemini returns
+    console.log("[OpenRouter] Assistant message with tool calls:", JSON.stringify(msg, null, 2));
+    try {
+      localStorage.setItem("RSDH_LAST_ASSISTANT_MSG", JSON.stringify(msg, null, 2));
+    } catch { /* ignore */ }
+
+    // Use JSON deep clone to ensure we don't have any reference issues that could corrupt data
+    // This is critical for preserving reasoning_details/thought signatures exactly as received
+    const assistantMsg: any = JSON.parse(JSON.stringify(msg));
+    // Ensure role is set (in case it wasn't in the response)
+    assistantMsg.role = "assistant";
+    // Ensure content field exists
     if (!('content' in assistantMsg)) assistantMsg.content = null;
     messages.push(assistantMsg);
 
