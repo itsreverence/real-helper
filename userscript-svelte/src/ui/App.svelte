@@ -1133,21 +1133,29 @@
                         style="margin-left: 12px; margin-top: 4px; max-height: 120px; overflow-y: auto;"
                       >
                         {#each p.player_pool.slice(0, 15) as player}
+                          {@const injuryMatch = player.status?.match(/\b(Active|Questionable|Doubtful|Out|Inactive|IR|COVID|Probable)\b/i)}
+                          {@const injuryStatus = injuryMatch?.[0] || ""}
+                          {@const projections = injuryStatus ? player.status?.replace(injuryMatch[0], "").replace(/^[\s,]+|[\s,]+$/g, "").trim() : player.status}
                           <div
-                            style="padding: 2px 0; font-size: 11px; display: flex; gap: 8px;"
+                            style="padding: 2px 0; font-size: 11px; display: flex; gap: 8px; flex-wrap: wrap;"
                           >
                             <span style="min-width: 140px;">{player.name}</span>
                             <span
                               style="color: var(--rsdh-accent-light); min-width: 50px;"
                               >+{player.boost_x ?? 0}x</span
                             >
-                            {#if player.status && player.status !== "Active"}
+                            {#if injuryStatus && injuryStatus !== "Active"}
                               <span
-                                style="color: {player.status === 'Out'
+                                style="color: {injuryStatus === 'Out'
                                   ? '#ef4444'
                                   : '#f59e0b'}; font-size: 10px;"
                               >
-                                {player.status}
+                                {injuryStatus}
+                              </span>
+                            {/if}
+                            {#if projections}
+                              <span style="color: #9ca3af; font-size: 10px; opacity: 0.8;">
+                                {projections}
                               </span>
                             {/if}
                           </div>
