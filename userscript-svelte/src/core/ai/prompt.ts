@@ -7,6 +7,28 @@ import type { PayloadOk, Slot, PlayerPoolItem, GameInfo, GameMatchup } from "../
 // (where the displayed value is combined slot + player boost).
 const FIXED_SLOT_MULTIPLIERS = [2.0, 1.8, 1.6, 1.4, 1.2];
 
+// Helper to parse status field - separates injury status from stat projections
+// Game drafts include stat projections in the status field, league drafts only have injury status
+function parseStatusField(status: string | null): { injuryStatus: string; projections: string } {
+  if (!status) return { injuryStatus: "", projections: "" };
+
+  // Common injury status patterns to extract
+  const injuryPatterns = /\b(Active|Questionable|Doubtful|Out|Inactive|IR|COVID|Probable)\b/i;
+  const match = status.match(injuryPatterns);
+
+  if (match) {
+    const injuryStatus = match[0];
+    const projectionPart = status.replace(injuryPatterns, "").replace(/^[\s,]+|[\s,]+$/g, "").trim();
+    return {
+      injuryStatus,
+      projections: projectionPart
+    };
+  }
+
+  // No injury status found, treat entire status as projections (game draft edge case)
+  return { injuryStatus: "", projections: status };
+}
+
 function baseContext(payload: PayloadOk) {
   let slots: Slot[] = Array.isArray(payload?.slots) ? (payload.slots as Slot[]) : [];
   if ((!slots || slots.length === 0) && Array.isArray(payload?.drafts) && payload.drafts.length > 0) {
@@ -41,11 +63,25 @@ function baseContext(payload: PayloadOk) {
 
   const poolSlice = pool.slice(0, MAX_POOL_IN_PROMPT);
 
+  // Determine draft type for display formatting
+  const draftType = payload?.draft_type || "league";
+
+  // Build pool lines with different formatting for game vs league drafts
   const poolLines = poolSlice
     .map(p => {
-      const st = p.status ? ` (${p.status})` : "";
+      const { injuryStatus, projections } = parseStatusField(p.status);
       const bx = typeof p.boost_x === "number" ? ` +${p.boost_x}x` : "";
-      return `- ${p.name}${st}${bx}`;
+
+      if (draftType === "game") {
+        // Game drafts: show player + injury status | projections info
+        const injuryPart = injuryStatus ? ` (${injuryStatus})` : "";
+        const projPart = projections ? ` | Proj: ${projections}` : "";
+        return `- ${p.name}${injuryPart}${projPart}${bx}`;
+      } else {
+        // League drafts: show player + injury status + boost
+        const st = injuryStatus ? ` (${injuryStatus})` : "";
+        return `- ${p.name}${st}${bx}`;
+      }
     })
     .join("\n");
 
@@ -62,7 +98,6 @@ function baseContext(payload: PayloadOk) {
         : 5;
 
   // Determine draft type and build game context accordingly
-  const draftType = payload?.draft_type || "league";
   const matchup = payload?.game_matchup as GameMatchup | undefined;
   const games: GameInfo[] = Array.isArray(payload?.games) ? payload.games : [];
 
