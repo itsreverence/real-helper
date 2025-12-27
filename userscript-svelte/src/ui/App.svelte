@@ -1137,24 +1137,26 @@
                           {@const injuryStatus = injuryMatch?.[0] || ""}
                           {@const projections = injuryStatus ? player.status?.replace(injuryMatch[0], "").replace(/^[\s,]+|[\s,]+$/g, "").trim() : player.status}
                           <div
-                            style="padding: 2px 0; font-size: 11px; display: flex; gap: 8px; flex-wrap: wrap;"
+                            style="padding: 2px 0; font-size: 11px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;"
                           >
                             <span style="min-width: 140px;">{player.name}</span>
                             <span
                               style="color: var(--rsdh-accent-light); min-width: 50px;"
                               >+{player.boost_x ?? 0}x</span
                             >
-                            {#if injuryStatus && injuryStatus !== "Active"}
+                            {#if injuryStatus}
                               <span
-                                style="color: {injuryStatus === 'Out'
+                                style="color: {injuryStatus.toLowerCase() === 'out'
                                   ? '#ef4444'
-                                  : '#f59e0b'}; font-size: 10px;"
+                                  : injuryStatus.toLowerCase() === 'active'
+                                  ? '#10b981'
+                                  : '#f59e0b'}; font-size: 10px; font-weight: 500; padding: 1px 4px; border-radius: 3px; background: {injuryStatus.toLowerCase() === 'out' ? 'rgba(239,68,68,0.1)' : injuryStatus.toLowerCase() === 'active' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)'}"
                               >
                                 {injuryStatus}
                               </span>
                             {/if}
                             {#if projections}
-                              <span style="color: #9ca3af; font-size: 10px; opacity: 0.8;">
+                              <span style="color: #9ca3af; font-size: 10px; padding: 1px 4px; border-radius: 3px; background: rgba(156,163,175,0.1);">
                                 {projections}
                               </span>
                             {/if}
