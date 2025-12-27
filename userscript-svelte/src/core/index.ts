@@ -16,6 +16,7 @@ export * from "./ui/debugBus";
 export * from "./ui/toast";
 export * from "./dom/navigation";
 export * from "./scrapers/playerProfile";
+export * from "./scrapers/strategies";  // Draft capture strategies
 export * from "./ai/prompt";
 export * from "./ui/render";
 export * from "./ai/openrouter";

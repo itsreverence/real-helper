@@ -8,6 +8,7 @@ import {
 } from "../constants";
 import { getDebugMode } from "../state/storage";
 import type { Payload, Slot, PlayerPoolItem, SportInfo, GameInfo, GameMatchup } from "../types";
+import { getDraftCaptureFactory } from "./strategies";
 
 type RGB = { r: number; g: number; b: number };
 
@@ -987,18 +988,12 @@ export function buildPayload(opts: { includeDebug?: boolean } = {}): Payload {
   const domPool = parsePlayerPoolFromModalDom(modal);
   const player_pool = domPool.length > 0 ? domPool : parsePlayerPoolFromModalText(modalText);
 
-  // Detect if this is a game-specific draft (limited entries)
-  const gameDraftInfo = detectGameDraftEntries();
-  const draftType = gameDraftInfo.isGameDraft ? "game" : "league";
-
-  // For game drafts, scrape the matchup header instead of all sidebar games
-  let games: GameInfo[] = [];
-  let gameMatchup: GameMatchup | undefined;
-  if (gameDraftInfo.isGameDraft) {
-    gameMatchup = scrapeGameMatchupFromHeader() ?? undefined;
-  } else {
-    games = scrapeGamesFromSidebar();
-  }
+  // Use strategy pattern for draft type detection and game data scraping
+  const factory = getDraftCaptureFactory();
+  const strategy = factory.autoDetect();
+  const detection = strategy.detect();
+  const gameData = strategy.scrapeGameData();
+  const strategyFields = strategy.buildPayloadFields();
 
   return {
     ok: true,
@@ -1007,16 +1002,16 @@ export function buildPayload(opts: { includeDebug?: boolean } = {}): Payload {
     captured_at: new Date().toISOString(),
     sport: sportInfo.sport,
     sport_detection_method: sportInfo.method,
-    draft_type: draftType,
-    ...(gameDraftInfo.isGameDraft ? { game_entries_remaining: gameDraftInfo.entriesRemaining } : {}),
-    ...(gameMatchup ? { game_matchup: gameMatchup } : {}),
+    ...strategyFields,
+    ...(gameData.games?.length ? { games: gameData.games } : {}),
+    ...(gameData.gameMatchup ? { game_matchup: gameData.gameMatchup } : {}),
     ...(includeDebug ? { sport_detection: sportInfo } : {}),
     ...(includeDebug ? { modal_text_sample: modalText.slice(0, 400) } : {}),
+    ...(includeDebug ? { draft_detection: { type: detection.type, confidence: detection.confidence, evidence: detection.evidence } } : {}),
     expected_slots: expectedSlots,
     slots,
     player_pool_count: player_pool.length,
     player_pool,
-    ...(games.length > 0 ? { games } : {}),
   } as Payload;
 }
 

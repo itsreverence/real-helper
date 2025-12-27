@@ -1,3 +1,45 @@
+export type DraftType = "league" | "game";
+
+/**
+ * Result of detecting the draft type
+ */
+export interface DetectionResult {
+  type: DraftType;
+  confidence: number; // 0.0 to 1.0
+  evidence: string[]; // List of detection signals found
+  sport?: string | null; // For game drafts: sport from entries text
+  entriesRemaining?: number | null; // For game drafts: remaining entries
+}
+
+/**
+ * Interface for draft capture strategies
+ * Each draft type (league/game) has its own strategy implementation
+ */
+export interface DraftCaptureStrategy {
+  /** Unique identifier for this strategy */
+  readonly strategyType: DraftType;
+
+  /** Detect if the current page matches this strategy's draft type */
+  detect(): DetectionResult;
+
+  /** Scrape game/matchup data specific to this draft type */
+  scrapeGameData(): { games?: GameInfo[]; gameMatchup?: GameMatchup | undefined };
+
+  /** Build type-specific payload fields */
+  buildPayloadFields(): Record<string, unknown>;
+}
+
+/**
+ * Factory for creating draft capture strategies
+ */
+export interface DraftCaptureFactory {
+  /** Create a strategy for the detected draft type */
+  createStrategy(detection: DetectionResult): DraftCaptureStrategy;
+
+  /** Auto-detect and create appropriate strategy */
+  autoDetect(): DraftCaptureStrategy;
+}
+
 export type Slot = {
   multiplier: number;
   selection: string | null;
